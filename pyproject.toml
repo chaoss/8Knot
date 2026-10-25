@@ -37,3 +37,7 @@ packages = []
 
 [tool.setuptools.dynamic]
 version = { attr = "metadata.__version__" }
+
+[tool.pytest.ini_options]
+pythonpath = ["8Knot"]
+
