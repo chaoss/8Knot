@@ -81,6 +81,8 @@ spec:
             - secretRef:
                 name: augur-config
             - secretRef:
+                name: eightknot-redis
+            - secretRef:
                 name: eightknot-postgres
           command:
             - python3

@@ -40,18 +40,29 @@ def issues_query(self, repos):
                         left(i.cntrb_id::text, 15) as issue_closer,
                         -- timestamps are not timestamptz
                         i.created_at,
-                        i.closed_at
+                        i.closed_at,
+                        STRING_AGG(il.label_text, ', ') AS labels
                     FROM
-                        repo r,
-                        issues i
+                        repo r
+                        JOIN issues i ON r.repo_id = i.repo_id
+                        LEFT JOIN issue_labels il ON i.issue_id = il.issue_id
                     WHERE
-                        r.repo_id = i.repo_id AND
                         r.repo_id in %s
                         and i.pull_request_id is null
                         and i.created_at < now()
                         and (i.closed_at < now() or i.closed_at IS NULL)
                         -- have to accept NULL values because issues could still be open, or unassigned,
                         -- and still be acceptable.
+                    GROUP BY
+                        r.repo_id,
+                        r.repo_name,
+                        i.issue_id,
+                        i.gh_issue_number,
+                        i.gh_issue_id,
+                        i.reporter_id,
+                        i.cntrb_id,
+                        i.created_at,
+                        i.closed_at
                     ORDER BY i.created_at
                     """
 

@@ -106,6 +106,28 @@ gc_issue_staleness = VisualizationAIO(
             ],
             align="center",
         ),
+        dbc.Row(
+            [
+                dbc.Label(
+                    "Issue Filter:",
+                    html_for=f"bug-filter-{PAGE}-{VIZ_ID}",
+                    width={"size": "auto"},
+                ),
+                dbc.Col(
+                    dbc.RadioItems(
+                        id=f"bug-filter-{PAGE}-{VIZ_ID}",
+                        options=[
+                            {"label": "All Issues", "value": "all"},
+                            {"label": "Bugs Only", "value": "bug"},
+                        ],
+                        value="all",
+                        inline=True,
+                        className="custom-radio-buttons",
+                    ),
+                ),
+            ],
+            align="center",
+        ),
     ],
     class_name="dark-card",
     id="issue-staleness",
@@ -120,10 +142,11 @@ gc_issue_staleness = VisualizationAIO(
         Input(f"date-interval-{PAGE}-{VIZ_ID}", "value"),
         Input(f"staling-days-{PAGE}-{VIZ_ID}", "value"),
         Input(f"stale-days-{PAGE}-{VIZ_ID}", "value"),
+        Input(f"bug-filter-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
 )
-def new_staling_issues_graph(repolist, interval, staling_interval, stale_interval):
+def new_staling_issues_graph(repolist, interval, staling_interval, stale_interval, bug_filter):
     # conditional for the intervals to be valid options
     if staling_interval > stale_interval:
         return dash.no_update, True
@@ -156,7 +179,7 @@ def new_staling_issues_graph(repolist, interval, staling_interval, stale_interva
         return nodata_graph, False
 
     # function for all data pre processing
-    df_status = process_data(df, interval, staling_interval, stale_interval)
+    df_status = process_data(df, interval, staling_interval, stale_interval, bug_filter)
 
     fig = create_figure(df_status, interval)
 
@@ -164,10 +187,17 @@ def new_staling_issues_graph(repolist, interval, staling_interval, stale_interva
     return fig, False
 
 
-def process_data(df: pd.DataFrame, interval, staling_interval, stale_interval):
+def process_data(df: pd.DataFrame, interval, staling_interval, stale_interval, bug_filter):
     # convert to datetime objects rather than strings
     df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
     df["closed_at"] = pd.to_datetime(df["closed_at"], utc=True)
+
+    # filter to bug-tagged issues only if requested
+    if bug_filter == "bug":
+        if "labels" not in df.columns:
+            logging.warning("ISSUE STALENESS - 'labels' column not found in cache, skipping bug filter")
+        else:
+            df = df[df["labels"].str.contains("bug", case=False, na=False)]
 
     # order values chronologically by creation date
     df = df.sort_values(by="created_at", axis=0, ascending=True)

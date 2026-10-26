@@ -43,7 +43,7 @@ def create_landing_hero():
                         className="landing-title",
                     ),
                     html.P(
-                        "8Knot visualizes the rich dataset collected by Augur. The duo enriches the study of communities for community architects, developers, and business intelligence experts alike.",
+                        "8Knot visualizes the rich dataset collected by CollectOSS. The duo enriches the study of communities for community architects, developers, and business intelligence experts alike.",
                         className="landing-subtitle",
                     ),
                 ],

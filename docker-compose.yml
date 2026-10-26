@@ -52,13 +52,20 @@ services:
     #   - 8080:8080
     volumes:
       - ./8Knot:/opt/app-root/src/:z
+    # db-init flushes the broker, so it must finish before the app and workers start.
     depends_on:
-      - worker-callback
-      - worker-query
-      - redis-broker
-      - redis-users
-      - postgres-cache
-      - db-init
+      worker-callback:
+        condition: service_started
+      worker-query:
+        condition: service_started
+      redis-broker:
+        condition: service_started
+      redis-users:
+        condition: service_started
+      postgres-cache:
+        condition: service_started
+      db-init:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -73,9 +80,14 @@ services:
       dockerfile: ./docker/Dockerfile
     command: ["celery", "-A", "app:celery_app", "worker", "--loglevel=INFO", "--concurrency=8", "--time-limit=700", "--soft-time-limit=630"]
     depends_on:
-      - redis-broker
-      - redis-users
-      - postgres-cache
+      redis-broker:
+        condition: service_started
+      redis-users:
+        condition: service_started
+      postgres-cache:
+        condition: service_started
+      db-init:
+        condition: service_completed_successfully
     env_file:
       - .env
     restart: always
@@ -98,8 +110,12 @@ services:
         "--soft-time-limit=540"
       ]
     depends_on:
-      - redis-broker
-      - postgres-cache
+      redis-broker:
+        condition: service_started
+      postgres-cache:
+        condition: service_started
+      db-init:
+        condition: service_completed_successfully
     env_file:
       - .env
     restart: always

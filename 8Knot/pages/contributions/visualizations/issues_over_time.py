@@ -75,6 +75,28 @@ gc_issues_over_time = VisualizationAIO(
                 width=7,
             ),
         ),
+        dbc.Row(
+            [
+                dbc.Label(
+                    "Issue Filter:",
+                    html_for=f"label-filter-{PAGE}-{VIZ_ID}",
+                    width={"size": "auto"},
+                ),
+                dbc.Col(
+                    dbc.RadioItems(
+                        id=f"label-filter-{PAGE}-{VIZ_ID}",
+                        options=[
+                            {"label": "All Issues", "value": "all"},
+                            {"label": "Bugs Only", "value": "bug"},
+                        ],
+                        value="all",
+                        inline=True,
+                        className="custom-radio-buttons",
+                    ),
+                ),
+            ],
+            align="center",
+        ),
     ],
     class_name="dark-card",
     id="issues-over-time",
@@ -89,10 +111,11 @@ gc_issues_over_time = VisualizationAIO(
         Input(f"date-interval-{PAGE}-{VIZ_ID}", "value"),
         Input(f"date-picker-range-{PAGE}-{VIZ_ID}", "start_date"),
         Input(f"date-picker-range-{PAGE}-{VIZ_ID}", "end_date"),
+        Input(f"label-filter-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
 )
-def issues_over_time_graph(repolist, interval, start_date, end_date):
+def issues_over_time_graph(repolist, interval, start_date, end_date, label_filter):
     # wait for data to asynchronously download and become available.
     while not_cached := cf.get_uncached(func_name=iq.__name__, repolist=repolist):
         logging.warning(f"ISSUES OVER TIME - WAITING ON DATA TO BECOME AVAILABLE")
@@ -114,7 +137,7 @@ def issues_over_time_graph(repolist, interval, start_date, end_date):
         return nodata_graph
 
     # function for all data pre processing
-    df_created, df_closed, df_open = process_data(df, interval, start_date, end_date)
+    df_created, df_closed, df_open = process_data(df, interval, start_date, end_date, label_filter)
 
     fig = create_figure(df_created, df_closed, df_open, interval)
 
@@ -123,10 +146,17 @@ def issues_over_time_graph(repolist, interval, start_date, end_date):
     return fig
 
 
-def process_data(df: pd.DataFrame, interval, start_date, end_date):
+def process_data(df: pd.DataFrame, interval, start_date, end_date, label_filter):
     # convert to datetime objects rather than strings
     df["created_at"] = pd.to_datetime(df["created_at"], utc=False)
     df["closed_at"] = pd.to_datetime(df["closed_at"], utc=False)
+
+    # filter to bug-tagged issues only if requested
+    if label_filter == "bug":
+        if "labels" not in df.columns:
+            logging.warning("ISSUES OVER TIME - 'labels' column not found in cache, skipping label filter")
+        else:
+            df = df[df["labels"].str.contains("bug", case=False, na=False)]
 
     # order values chronologically by creation date
     df = df.sort_values(by="created_at", axis=0, ascending=True)

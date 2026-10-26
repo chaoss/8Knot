@@ -66,6 +66,9 @@ jobs:
 
           yq eval -i '.services.mock-db.image = "ghcr.io/chaoss/augur_empty_database:latest"' docker-compose.yml
 
+          # gate db-init on service_started (podman compose skips healthchecks)
+          yq eval -i '.services.db-init.depends_on.postgres-cache.condition = "service_started"' docker-compose.yml
+
       - name: Setup Podman Compose
         uses: webgtx/setup-podman-compose@v1
 
