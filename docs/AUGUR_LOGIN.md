@@ -43,7 +43,7 @@ Finally, the job of the application user (User) is to:
 
 ---
 
-1. Clone [github.com/oss-aspen/8Knot/dev] (Dep)
+1. Clone [github.com/chaoss/8Knot/dev] (Dep)
    - We use a docker compose multi-container application build strategy.
    - Ports 8050 (*Dash*) and 6379 (*Redis*) are assumed to be available. If this isn't possible, modifications to the docker-compose.yml file may be necessary.
    - Inter-pod name resolution is done with Docker network's DNS.

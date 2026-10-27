@@ -618,15 +618,15 @@ def create_bottom_navbar():
     nav_items = [
         {
             "text": "Visualization request",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=enhancement%2Cvisualization&template=visualizations.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=enhancement%2Cvisualization&template=visualizations.md",
         },
         {
             "text": "Bug",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=bug&template=bug_report.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=bug&template=bug_report.md",
         },
         {
             "text": "Repo/Org Request",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=augur&template=augur_load.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=augur&template=augur_load.md",
         },
     ]
 

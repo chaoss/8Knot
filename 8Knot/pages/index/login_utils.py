@@ -80,7 +80,7 @@ def create_login_disabled_alert():
                     "If you need to collect data on new repositories, please ",
                     html.A(
                         "create a repository collection request",
-                        href="https://github.com/oss-aspen/8Knot/issues/new?template=augur_load.md",
+                        href="https://github.com/chaoss/8Knot/issues/new?template=augur_load.md",
                         target="_blank",
                         className="login-banner-link",
                     ),
