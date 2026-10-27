@@ -18,7 +18,7 @@ import dash_bootstrap_components as dbc
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
-    from db_manager.augur_manager import AugurManager
+    from db_manager.collectoss_manager import CollectOSSManager
 
 
 # ===== GENERIC COMPONENT BUILDERS (All-in-One Pattern) =====
@@ -147,13 +147,13 @@ def create_login_popover():
     )
 
 
-def create_login_nav(augur_manager: "AugurManager"):
+def create_login_nav(augur_manager: "CollectOSSManager"):
     """
     Create the login navigation component with all items.
     Uses the generic create_nav_item builder directly.
 
     Args:
-        augur_manager: The AugurManager instance with user_account_endpoint attribute
+        augur_manager: The CollectOSSManager instance with user_account_endpoint attribute
 
     Returns:
         dbc.Nav component with all login navigation items
@@ -186,12 +186,12 @@ def create_login_nav(augur_manager: "AugurManager"):
     )
 
 
-def create_login_navbar(augur_manager: "AugurManager"):
+def create_login_navbar(augur_manager: "CollectOSSManager"):
     """
     Create the login navbar based on AUGUR_LOGIN_ENABLED environment variable.
 
     Args:
-        augur_manager: The AugurManager instance (only used if login is enabled)
+        augur_manager: The CollectOSSManager instance (only used if login is enabled)
 
     Returns:
         List containing the login navbar Row, or empty Div if login is disabled

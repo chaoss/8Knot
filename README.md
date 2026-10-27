@@ -161,6 +161,8 @@ A sample file illustrating the format is available in `.env.sample` that can be 
 
 These credentials are suitable for development, but please replace any secrets with different values in production.
 
+Optional [source database timeout settings](docs/configuration.md) are documented separately.
+
 8Knot doesn't handle user accounts or data collection requests on its own. To support these features, you'll need to add the
 following additional configuration to your `.env` file.
 

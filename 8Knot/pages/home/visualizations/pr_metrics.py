@@ -5,7 +5,7 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import numpy as np
 import logging
-from db_manager.augur_manager import AugurManager
+from db_manager.collectoss_manager import CollectOSSManager
 
 # card for number of open prs in the selected repo set
 pr_open = dbc.Card(
@@ -179,8 +179,8 @@ def pr_count(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()
@@ -216,8 +216,8 @@ def merged_pr_count(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()
@@ -253,8 +253,8 @@ def rejected_pr_count(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()
@@ -291,8 +291,8 @@ def avg_open_pr_age(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()
@@ -340,8 +340,8 @@ def avg_merged_pr_age(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()
@@ -390,8 +390,8 @@ def rejected_pr_count(repolist):
         repolist ([int]): list of the repos queried
     """
 
-    # create augurmanager, should get creds from environment
-    db = AugurManager()
+    # create CollectOSSManager using credentials from the environment
+    db = CollectOSSManager()
 
     # create engine object from creds
     db.get_engine()

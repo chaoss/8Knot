@@ -9,54 +9,56 @@ import os
 import logging
 import sys
 import requests
+import psycopg2 as pg
 from sqlalchemy.exc import SQLAlchemyError
 from models import SearchItem
 
 
-class AugurManager:
+class CollectOSSManager:
     """
-    Handles connection and queries to Augur database.
+    Handles connection and queries to CollectOSS database.
 
     Attributes:
     -----------
         engine : _engine.Engine instance
-            SQLAlchemy engine with credentials to connect to Augur database.
+            SQLAlchemy engine with credentials to connect to CollectOSS database.
 
         user : str
-            User credential to Augur database.
+            User credential to CollectOSS database.
 
         password: str
-            Password credential to Augur database.
+            Password credential to CollectOSS database.
 
         host : str
-            Host credential to Augur database.
+            Host credential to CollectOSS database.
 
         port : str
-            Port credential to Augur database.
+            Port credential to CollectOSS database.
             Which port on the server machine we'll target.
 
         database : str
-            Database credential to Augur database.
+            Database credential to CollectOSS database.
             Which of the available databases on the server machine we'll target.
 
         schema : str
-            Schema credential to Augur database.
+            Schema credential to CollectOSS database.
             The target schema of the database we want to access.
 
     Methods:
     --------
         get_engine():
-            Connects to Augur databse with supplied credentials and
+            Connects to CollectOSS database with supplied credentials and
             returns engine object.
 
         run_query(query_string):
-            Runs a SQL-query against Augur database and returns resulting
+            Runs a SQL-query against CollectOSS database and returns resulting
             Pandas dataframe.
     """
 
-    def __init__(self, handles_oauth=False):
+    def __init__(self, handles_oauth=False, *, worker_query=False):
         # sqlalchemy engine object
         self.engine = None
+        self._engine_pid = None
         self.initial_search_option = None
 
         # db connection credentials
@@ -68,10 +70,16 @@ class AugurManager:
             self.port = os.environ["AUGUR_PORT"]
             self.database = os.environ["AUGUR_DATABASE"]
         except KeyError as ke:
-            logging.critical(f"AUGUR: Database credentials incomplete: {ke}")
+            logging.critical(f"CollectOSS: Database credentials incomplete: {ke}")
             raise KeyError(ke)
 
         self.schema = os.getenv("AUGUR_SCHEMA", "data,augur_data")
+        # Worker statements must finish before Celery's soft time limit. The
+        # app-server's search query has a separate, longer timeout.
+        self.statement_timeout_ms = os.getenv("COLLECTOSS_ENGINE_STATEMENT_TIMEOUT_MS", "1800000")
+        if worker_query:
+            self.statement_timeout_ms = os.getenv("COLLECTOSS_STATEMENT_TIMEOUT_MS", "500000")
+        self.idle_tx_timeout_ms = os.getenv("COLLECTOSS_IDLE_TX_TIMEOUT_MS", "120000")
 
         # oauth endpoints have to be intact to proceed
         if handles_oauth:
@@ -91,48 +99,90 @@ class AugurManager:
                 self.admin_group_names_endpoint = os.environ["AUGUR_ADMIN_GROUP_NAMES_ENDPOINT"]
                 self.admin_groups_endpoint = os.environ["AUGUR_ADMIN_GROUPS_ENDPOINT"]
             except KeyError as ke:
-                logging.critical(f"AUGUR: Oauth endpoints incomplete: {ke}")
+                logging.critical(f"CollectOSS: Oauth endpoints incomplete: {ke}")
 
     def get_engine(self):
         """
-        Creates _engine.Engine object connected to our Augur database.
+        Creates _engine.Engine object connected to our CollectOSS database.
+
+        SQLAlchemy manages a connection pool by default. A forked child must
+        replace its inherited pool before checking out a connection:
+        https://docs.sqlalchemy.org/en/20/core/pooling.html#using-connection-pools-with-multiprocessing-or-os-fork
 
         Returns:
         --------
             _engine.Engine: SQLAlchemy engine object.
         """
 
-        # return engine immediately if it already exists
+        pid = os.getpid()
         if self.engine:
+            # A fork copies the parent's pooled sockets. Replace only this
+            # child's pool; close=False leaves the parent's connections intact.
+            if self._engine_pid != pid:
+                self.engine.dispose(close=False)
+                self._engine_pid = pid
             return self.engine
 
-        database_connection_string = "postgresql+psycopg2://{}:{}@{}:{}/{}".format(
-            self.user, self.password, self.host, self.port, self.database
+        database_connection_string = salc.URL.create(
+            "postgresql+psycopg2",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=int(self.port),
+            database=self.database,
         )
 
         engine = salc.create_engine(
             database_connection_string,
-            connect_args={"options": "-csearch_path={}".format(self.schema)},
+            connect_args={
+                "options": " ".join(
+                    [
+                        f"-c search_path={self.schema}",
+                        f"-c statement_timeout={self.statement_timeout_ms}",
+                        f"-c idle_in_transaction_session_timeout={self.idle_tx_timeout_ms}",
+                        "-c tcp_keepalives_idle=60",
+                        "-c tcp_keepalives_interval=10",
+                        "-c tcp_keepalives_count=3",
+                    ]
+                )
+            },
             pool_pre_ping=True,
         )
+        salc.event.listen(engine, "connect", self._enable_client_connection_checks)
 
         # verify that engine works
         try:
-            # context managed connect, closes automatically
+            # Return the test connection to SQLAlchemy's pool automatically.
             with engine.connect() as conn:
-                logging.warning("AUGUR: Connection to DB succeeded")
+                logging.warning("CollectOSS: Connection to DB succeeded")
 
             self.engine = engine
+            self._engine_pid = pid
 
         except SQLAlchemyError as err:
-            logging.error(f"AUGUR: DB couldn't connect: {err.__cause__}")
-            raise SQLAlchemyError(err)
+            logging.error(f"CollectOSS: DB couldn't connect: {err.__cause__}")
+            raise
 
         return engine
 
+    @staticmethod
+    def _enable_client_connection_checks(connection, _connection_record=None) -> None:
+        """Enable disconnect polling when PostgreSQL and its host support it."""
+        if connection.server_version < 140000:
+            return
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SET client_connection_check_interval = '10s'")
+            # SET is transactional; finish it before application queries begin.
+            connection.commit()
+        except pg.Error as error:
+            logging.warning(f"CollectOSS: client disconnect checks unavailable: {error}")
+            connection.rollback()
+
     def run_query(self, query_string: str) -> pd.DataFrame:
         """
-        Runs SQL query against our Augur database.
+        Runs SQL query against our CollectOSS database.
 
         Args:
         -----

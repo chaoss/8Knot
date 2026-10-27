@@ -80,7 +80,7 @@ jobs:
           Database connection established successfully!
           ALL TABLES COMMITTED SUCCESSFULLY
           POSTGRES CACHE SUCCESSFULLY INITIALIZED
-          AUGUR: Connection to DB succeeded
+          CollectOSS: Connection to DB succeeded
           Listening at: http://0.0.0.0:8080
           Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
           /docker-entrypoint.sh: Configuration complete; ready for start up
@@ -166,7 +166,7 @@ jobs:
           Database connection established successfully!
           ALL TABLES COMMITTED SUCCESSFULLY
           POSTGRES CACHE SUCCESSFULLY INITIALIZED
-          AUGUR: Connection to DB succeeded
+          CollectOSS: Connection to DB succeeded
           Listening at: http://0.0.0.0:8080
           Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
           /docker-entrypoint.sh: Configuration complete; ready for start up

@@ -22,7 +22,7 @@ import sqlalchemy as salc
 import plotly.io as plt_io
 import dash_bootstrap_components as dbc
 import dash_bootstrap_templates as dbt
-from db_manager.augur_manager import AugurManager
+from db_manager.collectoss_manager import CollectOSSManager
 import _login
 from _celery import celery_app, celery_manager
 import _bots as bots
@@ -33,9 +33,9 @@ logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", level=logg
 """CREATE DATABASE ACCESS OBJECT AND CACHE SEARCH OPTIONS"""
 use_oauth = os.getenv("AUGUR_LOGIN_ENABLED", "False") == "True"
 try:
-    # create augur manager object. init fails if
+    # create CollectOSS manager object. init fails if
     # necessary environment variables aren't available.
-    augur = AugurManager(handles_oauth=use_oauth)
+    augur = CollectOSSManager(handles_oauth=use_oauth)
 
     # create engine. fails if test connection to DB fails.
     engine = augur.get_engine()

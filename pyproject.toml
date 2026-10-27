@@ -29,6 +29,9 @@ dependencies = [
     "sqlalchemy~=2.0",
 ]
 
+[dependency-groups]
+dev = ["pytest~=8.4"]
+
 # The release version lives in 8Knot/metadata.py so the running app can import it
 # (pyproject.toml is not shipped into the container).
 [tool.setuptools]
@@ -37,3 +40,7 @@ packages = []
 
 [tool.setuptools.dynamic]
 version = { attr = "metadata.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["8Knot"]
