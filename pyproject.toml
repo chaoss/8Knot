@@ -44,3 +44,6 @@ version = { attr = "metadata.__version__" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["8Knot"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
