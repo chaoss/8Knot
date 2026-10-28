@@ -17,8 +17,6 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     # The branches below must be a subset of the branches above
     branches: ["dev"]
-  schedule:
-    - cron: "24 2 * * 2"
 
 jobs:
   bandit:
