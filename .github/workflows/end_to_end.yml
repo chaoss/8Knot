@@ -15,7 +15,8 @@ permissions: {}
 jobs:
   test-e2e-podman:
     name: End-to-end test (Podman)
-    runs-on: ubuntu-latest
+    # ubuntu-latest (26.04) breaks rootless Podman network teardown
+    runs-on: ubuntu-24.04
     steps:
       - name: Remove unnecessary files from the base image
         run: |
