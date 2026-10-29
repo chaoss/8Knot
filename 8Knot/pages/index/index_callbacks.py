@@ -885,13 +885,15 @@ def update_pill_color_on_search(search_button_clicks, selected_repos_orgs):
     if not dash.ctx.triggered:
         return dash.no_update
 
-    triggered_id = dash.ctx.triggered_id
+    # Both inputs can change in one update (a shared link sets the selection
+    # AND triggers the search); the search button wins -> pills show blue.
+    triggered_ids = {t["prop_id"].split(".")[0] for t in dash.ctx.triggered}
 
-    if triggered_id == "search-button":
-        # Search button clicked - add 'searching' class to turn pills blue
-        logging.info(f"PILL COLOR: Search clicked - turning pills BLUE")
+    if "search-button" in triggered_ids:
+        # Search performed - add 'searching' class to turn pills blue
+        logging.info(f"PILL COLOR: Search triggered - turning pills BLUE")
         return "searchbar-dropdown searching"
-    if triggered_id == "projects":
+    if "projects" in triggered_ids:
         # Values changed (user selecting) - remove 'searching' class to keep pills red
         logging.info(f"PILL COLOR: Values changed - turning pills RED. Selected: {selected_repos_orgs}")
         return "searchbar-dropdown"
