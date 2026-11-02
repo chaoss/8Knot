@@ -6,8 +6,8 @@
 language: en-US
 
 reviews:
-  # Profile: "chill" for balanced feedback, "assertive" for thorough reviews
-  profile: chill
+  # Profile: "quiet" for only the most important feedback, "chill" for balanced feedback, "assertive" for thorough reviews
+  profile: quiet
 
   # Disable automatic reviews - reviews must be triggered manually via PR comments
   auto_review:
@@ -22,10 +22,16 @@ reviews:
   # Poem generation (optional, can be disabled)
   poem: false
 
+  path_instructions:
+    - path: "8Knot/**"
+      instructions: >-
+        Report only correctness, data-integrity, concurrency, security, or performance bugs.
+        No style, naming, docstring, or formatting comments.
+
 
 # Manual Review Commands (use in PR comments):
 # - @coderabbitai full review          : Complete thorough review of all files
-# - @coderabbitai review               : Standard review (uses profile "chill" for balanced feedback "assertive" for thorough reviews)
+# - @coderabbitai review               : Standard review (uses profile "quiet" for only the most important feedback)
 # - @coderabbitai summary              : Generate/regenerate PR summary
 # - @coderabbitai pause                : Temporarily stop reviews
 # - @coderabbitai resume               : Resume reviews
