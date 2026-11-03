@@ -10,6 +10,25 @@
 
 ## 🔍 What gets tested?
 
+### Source connection regression checks
+
+Run the focused checks with `pytest` through `uv`, which installs the application
+and development dependencies. Set `QUERY_TEST_DSN` to a disposable PostgreSQL 14+
+database running on Linux (for disconnect polling support):
+
+```bash
+QUERY_TEST_DSN="host=localhost port=5432 dbname=postgres user=postgres password=test" \
+  uv run pytest tests/test_query_cancellation.py -v
+```
+
+Without `QUERY_TEST_DSN`, `uv run pytest` collects and skips these database-backed
+tests. They can also be collected without a database using
+`uv run pytest tests/test_query_cancellation.py --collect-only`.
+
+The tests create and remove isolated schemas. They check server-side streaming,
+timeout rollback without Celery retries, connection settings and reuse, prefork
+pool isolation, and cleanup of a running query after its client is killed.
+
 ### Pages tested on every PR:
 - `/` - Welcome page
 - `/contributions` - Contribution metrics

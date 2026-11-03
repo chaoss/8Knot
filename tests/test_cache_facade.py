@@ -91,6 +91,20 @@ def test_wait_for_cache_timeout():
                 cf.wait_for_cache("test_func", [101], timeout=0.01)
 
 
+def test_wait_for_cache_backoff_and_caller():
+    """Verify progressive backoff up to max_delay and custom caller label on timeout."""
+    with patch("cache_manager.cache_facade.get_uncached", side_effect=[[101], [101], [101], [101], [101], []]):
+        with patch("time.sleep") as mock_sleep:
+            cf.wait_for_cache("test_func", [101], timeout=60, caller="MY_VIZ")
+            delays = [call.args[0] for call in mock_sleep.call_args_list]
+            assert delays == [0.5, 1.0, 2.0, 4.0, 5.0]
+
+    with patch("cache_manager.cache_facade.get_uncached", return_value=[101]):
+        with patch("time.sleep"):
+            with pytest.raises(TimeoutError, match="MY_CALLER: timed out after 0.01s"):
+                cf.wait_for_cache("test_func", [101], timeout=0.01, caller="MY_CALLER")
+
+
 def test_caching_wrapper_empty_repolist():
     """Verify caching_wrapper returns early without executing queries when repolist is empty."""
     with (

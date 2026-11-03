@@ -64,9 +64,7 @@ gc_pr_first_response = VisualizationAIO(
     background=True,
 )
 def pr_first_response_graph(repolist, num_days, bot_switch):
-    while not_cached := cf.get_uncached(func_name=prr.__name__, repolist=repolist):
-        logging.warning(f"PR_FIRST_RESPONSE - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=prr.__name__, repolist=repolist)
 
     start = time.perf_counter()
     logging.warning(f"{VIZ_ID}- START")

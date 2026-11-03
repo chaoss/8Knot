@@ -129,9 +129,7 @@ def new_staling_prs_graph(repolist, interval, staling_interval, stale_interval):
         return dash.no_update, dash.no_update
 
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=prq.__name__, repolist=repolist):
-        logging.warning(f"PULL REQUESTS STALENESS - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=prq.__name__, repolist=repolist)
 
     start = time.perf_counter()
     logging.warning("PULL REQUEST STALENESS - START")

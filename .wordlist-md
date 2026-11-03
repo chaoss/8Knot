@@ -1,5 +1,6 @@
 AUTH
 CHAOSS
+chaoss
 CPUs
 DNS
 Dep
@@ -124,3 +125,8 @@ CoC
 Inclusivity
 discoverable
 OOM
+CollectOSS
+TCP
+keepalives
+prefork
+schemas

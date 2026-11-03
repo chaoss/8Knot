@@ -117,9 +117,7 @@ gc_issues_over_time = VisualizationAIO(
 )
 def issues_over_time_graph(repolist, interval, start_date, end_date, label_filter):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=iq.__name__, repolist=repolist):
-        logging.warning(f"ISSUES OVER TIME - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=iq.__name__, repolist=repolist)
 
     # data ready.
     start = time.perf_counter()

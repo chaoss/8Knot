@@ -1,8 +1,8 @@
 # 8Knot
 
-![Pre-Commit](https://github.com/oss-aspen/8Knot/actions/workflows/pre-commit.yml/badge.svg)
-![Build-Push](https://github.com/oss-aspen/8Knot/actions/workflows/build-push-quay.yml/badge.svg)
-![Docker Compose](https://github.com/oss-aspen/8Knot/actions/workflows/docker-compose-build.yml/badge.svg)
+![Pre-Commit](https://github.com/chaoss/8Knot/actions/workflows/pre-commit.yml/badge.svg)
+![Build-Push](https://github.com/chaoss/8Knot/actions/workflows/build-push-quay.yml/badge.svg)
+![Docker Compose](https://github.com/chaoss/8Knot/actions/workflows/docker-compose-build.yml/badge.svg)
 
 Welcome to 8Knot!
 
@@ -160,6 +160,8 @@ You will need credentials of the following form, named `.env`, at the top-level 
 A sample file illustrating the format is available in `.env.sample` that can be copy-pasted and renamed to `.env` to get you started with a basic set of valid credentials.
 
 These credentials are suitable for development, but please replace any secrets with different values in production.
+
+Optional [source database timeout settings](docs/configuration.md) are documented separately.
 
 8Knot doesn't handle user accounts or data collection requests on its own. To support these features, you'll need to add the
 following additional configuration to your `.env` file.
