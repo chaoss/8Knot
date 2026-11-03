@@ -148,9 +148,7 @@ def graph_title(window_width):
 )
 def create_contrib_prolificacy_over_time_graph(repolist, threshold, window_width, step_size, bot_switch):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=ctq.__name__, repolist=repolist):
-        logging.warning(f"{VIZ_ID}- WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=ctq.__name__, repolist=repolist)
 
     start = time.perf_counter()
     logging.warning(f"{VIZ_ID} - START")

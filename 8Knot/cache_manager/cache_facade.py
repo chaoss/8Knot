@@ -4,6 +4,7 @@ bulk cache writes use psycopg2.
 """
 
 import logging
+import time
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 from psycopg2 import sql as pg_sql
@@ -47,7 +48,8 @@ def cache_query_results(
         with collectoss_conn.execution_options(yield_per=server_pagination).exec_driver_sql(query, vars) as result:
             logging.warning(f"{target_table} -- CQR STARTING TRANSACTION")
             # connect to cache
-            with pg.connect(cache_cx_string) as cache_conn:
+            cache_conn = pg.connect(cache_cx_string)
+            try:
                 logging.warning(f"{target_table} -- CQR COMPOSING SQL")
                 # compose SQL w/ table name
                 # ref: https://www.psycopg.org/docs/sql.html
@@ -83,6 +85,8 @@ def cache_query_results(
 
                 logging.warning(f"{target_table} -- CQR COMMITTING TRANSACTION")
                 cache_conn.commit()
+            finally:
+                cache_conn.close()
 
         # don't need to commit on primary db
         logging.warning(f"{target_table} -- CQR SUCCESS")
@@ -95,7 +99,11 @@ def get_uncached(func_name: str, repolist: list[int]) -> list[int]:  # or None
 
     Returns a list of repos that AREN'T resident in cache.
     """
-    with pg.connect(cache_cx_string) as cache_conn:
+    if not repolist:
+        return []
+
+    cache_conn = pg.connect(cache_cx_string)
+    try:
         with cache_conn.cursor() as cache_cur:
             composed_query = pg_sql.SQL(
                 """
@@ -115,13 +123,51 @@ def get_uncached(func_name: str, repolist: list[int]) -> list[int]:  # or None
 
             # process list of single-value tuples to get list of values.
             # looks like: [(val1,), (val2,), ...]
-            already_cached: set[int] = set([v[0] for v in already_cached])
+            already_cached_set: set[int] = set([v[0] for v in already_cached])
 
             # repos that are already cached will be removed from repolist set,
             # leaving uncached remaining.
-            not_cached: list[int] = list(set(repolist) - already_cached)
+            not_cached: list[int] = list(set(repolist) - already_cached_set)
 
             return not_cached
+    finally:
+        cache_conn.close()
+
+
+def wait_for_cache(
+    func_name: str,
+    repolist: list[int],
+    timeout: int = 60,
+    caller: str = "",
+) -> None:
+    """Wait for data to appear in cache with bounded polling and backoff.
+
+    Replaces the per-visualization `while not_cached := get_uncached(...): time.sleep(0.5)`
+    polling loops. Uses progressive backoff (0.5s -> 1.0s -> 2.0s capped at 5.0s) to reduce
+    load on postgres-cache while queries are running.
+
+    Args:
+        func_name: name of the query function (used for bookkeeping lookup).
+        repolist: repo IDs expected in cache.
+        timeout: max seconds to wait before raising TimeoutError.
+        caller: optional label for log messages.
+    """
+    if not repolist:
+        return
+
+    label = caller or func_name
+    delay = 0.5
+    max_delay = 5.0
+    deadline = time.monotonic() + timeout
+
+    while not_cached := get_uncached(func_name=func_name, repolist=repolist):
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                f"{label}: timed out after {timeout}s waiting for {len(not_cached)} repos in {func_name}"
+            )
+        logging.warning(f"{label} - WAITING ON {len(not_cached)} REPOS FOR {func_name}")
+        time.sleep(delay)
+        delay = min(delay * 2, max_delay)
 
 
 def caching_wrapper(func_name: str, query: str, repolist: list[int], n_repolist_uses=1) -> None:
@@ -141,13 +187,17 @@ def caching_wrapper(func_name: str, query: str, repolist: list[int], n_repolist_
     Returns:
         _type_: None
     """
+    if not repolist:
+        logging.warning(f"{func_name} COLLECTION - NO REPOS SPECIFIED")
+        return
+
     try:
         # STEP 1: Which repos need to be queried for?
         #           some might already be in cache.
         uncached_repos: list[int] | None = get_uncached(func_name=func_name, repolist=repolist)
         if not uncached_repos:
             logging.warning(f"{func_name} COLLECTION - ALL REQUESTED REPOS IN CACHE")
-            return 0
+            return
         else:
             logging.warning(f"{func_name} COLLECTION - CACHING {len(uncached_repos)} NEW REPOS")
 
@@ -184,27 +234,29 @@ def retrieve_from_cache(
     Results are retrieved by a DataFrame, so column names
     may need to be overridden by calling function.
     """
+    if not repolist:
+        return pd.DataFrame()
 
     # GET ALL DATA FROM POSTGRES CACHE
     df = None
-    with pg.connect(cache_cx_string) as cache_conn:
+    cache_conn = pg.connect(cache_cx_string)
+    try:
         with cache_conn.cursor() as cache_cur:
-            cache_cur.execute(
+            composed_query = pg_sql.SQL(
                 """
                 SELECT *
-                FROM {tablename} t
+                FROM {table} t
                 WHERE t.repo_id IN %s;
-                """.format(
-                    tablename=tablename
-                ),
-                (tuple(repolist),),
-            )
+                """
+            ).format(table=pg_sql.Identifier(tablename))
+
+            cache_cur.execute(composed_query, (tuple(repolist),))
 
             logging.warning(f"{tablename} - LOADING DATA FROM CACHE")
-            df = pd.DataFrame(
-                cache_cur.fetchall(),
-                # get df column names from the database columns
-                columns=[desc[0] for desc in cache_cur.description],
-            )
+            rows = cache_cur.fetchall()
+            columns = [desc[0] for desc in cache_cur.description] if cache_cur.description else []
+            df = pd.DataFrame(rows, columns=columns)
             logging.warning(f"{tablename} - DATA LOADED - {df.shape} rows,cols")
             return df
+    finally:
+        cache_conn.close()

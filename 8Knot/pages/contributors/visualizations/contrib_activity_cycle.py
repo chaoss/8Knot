@@ -64,9 +64,7 @@ gc_contrib_activity_cycle = VisualizationAIO(
 )
 def contrib_activity_cycle_graph(repolist, interval):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=cmq.__name__, repolist=repolist):
-        logging.warning(f"COMMITS_OVER_TIME_VIZ - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=cmq.__name__, repolist=repolist)
 
     start = time.perf_counter()
     logging.warning(f"{VIZ_ID}- START")

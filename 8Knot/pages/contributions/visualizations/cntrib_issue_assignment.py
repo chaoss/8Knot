@@ -128,9 +128,7 @@ gc_cntrib_issue_assignment = VisualizationAIO(
 )
 def cntrib_issue_assignment_graph(repolist, interval, assign_req, start_date, end_date, bot_switch):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=iaq.__name__, repolist=repolist):
-        logging.warning(f"{VIZ_ID} - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=iaq.__name__, repolist=repolist)
 
     # data ready.
     start = time.perf_counter()

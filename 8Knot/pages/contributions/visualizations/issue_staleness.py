@@ -156,9 +156,7 @@ def new_staling_issues_graph(repolist, interval, staling_interval, stale_interva
 
     # wait for data to asynchronously download and become available.
 
-    while not_cached := cf.get_uncached(func_name=iq.__name__, repolist=repolist):
-        logging.warning(f"ISSUES STALENESS - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=iq.__name__, repolist=repolist)
 
     # data ready.
     start = time.perf_counter()

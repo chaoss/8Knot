@@ -103,9 +103,7 @@ def ossf_scorecard(repo: str):
         repo = int(repo)
 
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=osq.__name__, repolist=[repo]):
-        logging.warning(f"{VIZ_ID}- WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=osq.__name__, repolist=[repo])
 
     logging.warning(f"{VIZ_ID} - START")
     start = time.perf_counter()

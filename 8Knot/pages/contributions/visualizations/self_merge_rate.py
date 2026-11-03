@@ -115,9 +115,7 @@ def self_merge_graph(repolist, interval, view):
 
 def _load_merged_prs(repolist, viz_name):
     """Shared data loading for self-merge callback."""
-    while not_cached := cf.get_uncached(func_name=prq.__name__, repolist=repolist):
-        logging.warning(f"{viz_name} - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=prq.__name__, repolist=repolist)
 
     df = cf.retrieve_from_cache(
         tablename=prq.__name__,

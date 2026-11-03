@@ -220,14 +220,10 @@ def multi_query_helper(repos: list[int]):
     """
 
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=riq.__name__, repolist=repos):
-        logging.warning(f"REPO GENERAL INFO - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=riq.__name__, repolist=repos)
 
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=rrq.__name__, repolist=repos):
-        logging.warning(f"REPO GENERAL INFO - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=rrq.__name__, repolist=repos)
 
     # GET ALL DATA FROM POSTGRES CACHE
     df_repo_info = cf.retrieve_from_cache(
@@ -243,13 +239,11 @@ def multi_query_helper(repos: list[int]):
         return None, df_repo_info, df_releases
 
     # File data is optional: wait at most 60s after metadata, then render without it.
-    deadline = time.monotonic() + 60
-    while cf.get_uncached(func_name=rfq.__name__, repolist=repos):
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            logging.warning("REPO GENERAL INFO - FILE DATA UNAVAILABLE")
-            return None, df_repo_info, df_releases
-        time.sleep(min(0.5, remaining))
+    try:
+        cf.wait_for_cache(func_name=rfq.__name__, repolist=repos, timeout=60, caller="REPO GENERAL INFO")
+    except TimeoutError:
+        logging.warning("REPO GENERAL INFO - FILE DATA UNAVAILABLE")
+        return None, df_repo_info, df_releases
 
     df_file = cf.retrieve_from_cache(
         tablename=rfq.__name__,
