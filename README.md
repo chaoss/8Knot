@@ -205,6 +205,9 @@ We use containers to minimize the installation requirements for development and 
 
 We use Docker's Compose feature to spin up all application resources together. Please make sure you have Docker Compose installed on your system. You can find documentation on doing so here: [Docker Compose](https://docs.docker.com/compose/install)
 
+For local development, you can start with CollectOSS's
+[ready-to-use sample database](https://docs.collectoss.org/en/latest/getting-started/sample-database.html).
+
 
 #### Option 1: Using Podman (Recommended)
 
