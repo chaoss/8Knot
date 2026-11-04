@@ -7,7 +7,7 @@ import pandas as pd
 import logging
 from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
-from pages.utils.graph_utils import get_graph_time_values, baby_blue
+from pages.utils.graph_utils import get_graph_time_values, baby_blue, contributor_label
 from queries.contributors_query import contributors_query as ctq
 from pages.utils.job_utils import nodata_graph
 import time
@@ -203,7 +203,13 @@ def process_data(df: pd.DataFrame, action_type, top_k, start_date, end_date):
     t_sum = df.shape[0]
 
     # count the number of contributions for each contributor
-    df = (df.groupby("cntrb_id")["Action"].count()).to_frame()
+    label_col, _ = contributor_label()
+
+    # not every contributor has a GitHub account, so keep the id where login is null
+    if label_col != "cntrb_id":
+        df[label_col] = df[label_col].fillna(df["cntrb_id"])
+
+    df = (df.groupby(label_col)["Action"].count()).to_frame()
 
     # sort rows according to amount of contributions from greatest to least
     df.sort_values(by="Action", ascending=False, inplace=True)
@@ -222,30 +228,32 @@ def process_data(df: pd.DataFrame, action_type, top_k, start_date, end_date):
     # calculate the remaining contributions by taking the the difference of t_sum and df_sum
     # dataframes no longer implement above 'append' interface as of Pandas 1.4.4
     # create a single-entry dataframe that we can concatenate onto existing df
-    df_concat = pd.DataFrame(data={"cntrb_id": ["Other"], action_type: [t_sum - df_sum]})
+    df_concat = pd.DataFrame(data={label_col: ["Other"], action_type: [t_sum - df_sum]})
     df = pd.concat([df, df_concat], ignore_index=True)
 
     return df
 
 
 def create_figure(df: pd.DataFrame, action_type):
+    label_col, label_name = contributor_label()
+
     # create plotly express pie chart
     fig = px.pie(
         df,
-        names="cntrb_id",  # can be replaced with login to unanonymize
+        names=label_col,
         values=action_type,
         color_discrete_sequence=baby_blue,
     )
 
-    # display percent contributions and cntrb_id in each wedge
-    # format hover template to display cntrb_id and the number of their contributions according to the action_type
+    # display percent contributions and the contributor label in each wedge
+    # format hover template to display the contributor label and their contribution count for the action_type
     fig.update_traces(
         textinfo="percent+label",
         textposition="inside",
-        hovertemplate="Contributor ID: %{label} <br>Contributions: %{value}<br><extra></extra>",
+        hovertemplate=f"{label_name}: %{{label}} <br>Contributions: %{{value}}<br><extra></extra>",
     )
 
     # add legend title
-    fig.update_layout(legend_title_text="Contributor ID")
+    fig.update_layout(legend_title_text=label_name)
 
     return fig
