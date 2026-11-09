@@ -242,10 +242,13 @@ If you're using Podman, you can use either `podman compose` or `docker compose` 
 
 Using podman-compose directly:
 ```bash
-# Start the application
+# Start the application with ONE of these two commands (not both):
+
+# a) with one worker of each kind
 podman compose up --build
 
-# Scale worker pools (recommended)
+# b) or, recommended, with two query and two callback workers, which avoids
+#    a known deadlock (see "Option 2: Using Docker" below)
 podman compose up --build --scale worker-query=2 --scale worker-callback=2
 
 # Stop the application
@@ -257,8 +260,10 @@ podman compose down --volumes
 
 Using docker compose with Podman:
 ```bash
-# The same Docker Compose commands work with Podman if you've set up the compatibility layer
+# The same Docker Compose commands work with Podman if you've set up the compatibility layer.
+# As above, start the application with ONE of these two commands (not both):
 docker compose up --build
+# or, recommended:
 docker compose up --build --scale worker-query=2 --scale worker-callback=2
 ```
 
@@ -322,6 +327,8 @@ A concrete example: I have 6 CPU's allocated to my Docker runtime, so Celery wor
 However, there are 7 visualizations on the Overview page. Therefore, I will scale the 'callback_worker' pod to 2 instances,
 guaranteeing that there are (2 \* #CPUs = 12) available processing celery threads, ensuring that the known deadlock will be avoided.
 
+To do this, start the application with the command below **instead of** `docker compose up --build` above. It starts the whole application with the scaled workers, so don't run both:
+
 ```bash
 docker compose up --build --scale worker-query=2 --scale worker-callback=2
 ```
@@ -362,6 +369,8 @@ There need to be (#visualizations + 1) celery threads available for the callback
 A concrete example: I have 6 CPU's allocated to my Docker runtime, so Celery workers will default to a concurrency of 6 processes.
 However, there are 7 visualizations on the Overview page. Therefore, I will scale the 'callback_worker' pod to 2 instances,
 guaranteeing that there are (2 \* #CPUs = 12) available processing celery threads, ensuring that the known deadlock will be avoided.
+
+To do this, start the application with the command below **instead of** `podman compose up --build` above. It starts the whole application with the scaled workers, so don't run both:
 
 ```bash
 podman compose up --build --scale worker-query=2 --scale worker-callback=2
