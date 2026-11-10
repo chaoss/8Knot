@@ -9,7 +9,7 @@ from pages.utils.graph_utils import create_heatmap_figure
 from queries.prs_query import prs_query as prq
 from queries.pr_files_query import pr_file_query as prfq
 from queries.repo_files_query import repo_files_query as rfq
-from app import augur
+from app import augur as collectoss
 from pages.utils.job_utils import nodata_graph, get_default_repo_with_data
 import time
 import cache_manager.cache_facade as cf
@@ -105,8 +105,8 @@ gc_contribution_file_heatmap = VisualizationAIO(
 def repo_dropdown(repo_ids):
     # array to hold repo_id and git url pairing for dropdown
     data_array = []
-    for repo_id in repo_ids:
-        entry = {"value": str(repo_id), "label": augur.repo_id_to_git(repo_id)}
+    for repo_id, label in zip(repo_ids, collectoss.repo_ids_to_git(repo_ids)):
+        entry = {"value": str(repo_id), "label": label}
         data_array.append(entry)
 
     # Select first repo with valid cached data as default

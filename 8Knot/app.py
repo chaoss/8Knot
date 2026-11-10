@@ -22,7 +22,9 @@ import sqlalchemy as salc
 import plotly.io as plt_io
 import dash_bootstrap_components as dbc
 import dash_bootstrap_templates as dbt
+import psycopg2
 from db_manager.collectoss_manager import CollectOSSManager
+import cache_manager.cache_facade as cf
 import _login
 from _celery import celery_app, celery_manager
 import _bots as bots
@@ -47,6 +49,14 @@ except SQLAlchemyError:
 
 # grab list of projects and orgs from Augur database.
 augur.multiselect_startup()
+
+# Require a successful sync before serving: an older populated index would not trigger empty-table recovery.
+collectoss = augur
+try:
+    cf.sync_search_options(collectoss.get_multiselect_options())
+except psycopg2.Error:
+    logging.exception("SEARCH_OPTIONS: failed to sync to postgres-cache")
+    raise
 
 
 """IMPORT AFTER GLOBAL VARIABLES SET"""

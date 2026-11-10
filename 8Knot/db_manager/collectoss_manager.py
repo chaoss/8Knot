@@ -287,7 +287,27 @@ class CollectOSSManager:
         Returns:
             git (str): URL of repo
         """
-        return self.repo_id_to_repo_git.get(id)
+        return self.repo_ids_to_git([id])[0]
+
+    def repo_ids_to_git(self, repo_ids: list[int]) -> list[str]:
+        """Return labels in selection order, loading missing metadata in one query.
+
+        Each web/worker process can receive IDs discovered after its startup.
+        Keep ID labels usable if repositories have since been removed or CollectOSS
+        is temporarily unavailable; successful lookups populate the local map.
+        """
+        ids = [int(repo_id) for repo_id in repo_ids]
+        missing = list(set(ids) - self.repo_id_to_repo_git.keys())
+        if missing:
+            try:
+                with self.engine.connect() as conn:
+                    rows = conn.execute(
+                        salc.text("SELECT repo_id, repo_git FROM repo WHERE repo_id = ANY(:ids)"), {"ids": missing}
+                    )
+                    self.repo_id_to_repo_git.update({repo_id: url for repo_id, url in rows if url})
+            except SQLAlchemyError:
+                logging.exception("COLLECTOSS: Could not load labels for selected repositories")
+        return [self.repo_id_to_repo_git.get(repo_id) or f"Repository {repo_id}" for repo_id in ids]
 
     def org_to_repos(self, org):
         """Returns the list of repos in an org.
@@ -299,6 +319,30 @@ class CollectOSSManager:
             [int] | None: repo_ids or None
         """
         return self.org_name_to_repos_dict[org]
+
+    def resolve_org_repos(self, names: list[str]) -> dict[str, list[int]]:
+        """Resolve selected organizations from CollectOSS, not this process's startup snapshot.
+
+        Another process may have published newer search options. Query once when
+        the user confirms a selection so both new orgs and changed memberships work.
+        Names absent from CollectOSS are omitted; the caller can check private groups.
+        """
+        if not names:
+            return {}
+
+        query = salc.text(
+            """
+            SELECT lower(rg.rg_name), r.repo_id
+            FROM repo r
+            JOIN repo_groups rg ON rg.repo_group_id = r.repo_group_id
+            WHERE lower(rg.rg_name) = ANY(:names)
+            """
+        )
+        org_repos = {}
+        with self.engine.connect() as conn:
+            for name, repo_id in conn.execute(query, {"names": names}):
+                org_repos.setdefault(name, []).append(repo_id)
+        return org_repos
 
     def is_org(self, org):
         """Checks if org name in set of known org names
