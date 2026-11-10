@@ -380,15 +380,6 @@ a.sidebar-section-text {
 }
 
 
-/* Storage Quota Warning */
-
-.storage-quota-warning {
-    display: none;
-    margin-top: var(--spacing-sm);
-    margin-bottom: 0;
-}
-
-
 /* ==== UTILITY COMPONENT CLASSES ==== */
 
 
