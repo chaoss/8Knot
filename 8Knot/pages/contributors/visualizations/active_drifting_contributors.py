@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 import logging
 from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
@@ -185,12 +186,9 @@ def process_data(df: pd.DataFrame, interval, drift_interval, away_interval):
     # df for active, driving, and away contributors for time interval
     df_status = dates.to_frame(index=False, name="Date")
 
-    # dynamically apply the function to all dates defined in the date_range to create df_status
+    # active, drifting, and away contributor counts for every date in the date_range
     df_status["Active"], df_status["Drifting"], df_status["Away"] = zip(
-        *df_status.apply(
-            lambda row: get_active_drifting_away_up_to(df, row.Date, drift_interval, away_interval),
-            axis=1,
-        )
+        *get_active_drifting_away_counts(df, dates, drift_interval, away_interval)
     )
 
     # formatting for graph generation
@@ -260,32 +258,30 @@ def create_figure(df_status: pd.DataFrame, interval):
     return fig
 
 
-def get_active_drifting_away_up_to(df, date, drift_interval, away_interval):
-    # drop rows that are more recent than the date limit
-    df_lim = df[df["created_at"] <= date]
+def get_active_drifting_away_counts(df, dates, drift_interval, away_interval):
+    """[active, drifting, away] contributor counts at each date, judged by each contributor's latest activity up to it.
 
-    # keep more recent contribution per ID
-    df_lim = df_lim.drop_duplicates(subset="cntrb_id", keep="last")
+    df must be sorted by created_at. An activity is its contributor's latest from its own time until their next one,
+    so each date only checks the activities inside its drift/away window instead of filtering every row.
+    """
+    # one row per contributor per timestamp, so a contributor's next activity is strictly later
+    events = df.drop_duplicates(subset=["cntrb_id", "created_at"])
+    created = events["created_at"].dt.as_unit("ns").astype("int64").to_numpy()
+    next_activity = events.groupby("cntrb_id")["created_at"].shift(-1).dt.as_unit("ns")
+    next_activity = next_activity.fillna(pd.Timestamp.max.tz_localize("UTC")).astype("int64").to_numpy()
+    first_activity = created[~events["cntrb_id"].duplicated().to_numpy()]
 
-    # time difference, drifting_months before the threshold date
-    drift_mos = date - relativedelta(months=+drift_interval)
-
-    # time difference, away_months before the threshold date
-    away_mos = date - relativedelta(months=+away_interval)
-
-    # number of total contributors up until date
-    numTotal = df_lim.shape[0]
-
-    # number of 'active' contributors, people with contributions before the drift time
-    numActive = df_lim[df_lim["created_at"] >= drift_mos].shape[0]
-
-    # set of contributions that are before the away time
-    drifting = df_lim[df_lim["created_at"] > away_mos]
-
-    # number of the set of contributions that are after the drift time, but before away
-    numDrifting = drifting[drifting["created_at"] < drift_mos].shape[0]
-
-    # difference of the total to get the away value
-    numAway = numTotal - (numActive + numDrifting)
-
-    return [numActive, numDrifting, numAway]
+    counts = []
+    for date in dates:
+        drift_mos = (date - relativedelta(months=+drift_interval)).value
+        away_mos = (date - relativedelta(months=+away_interval)).value
+        # activities in (away_mos, drift_mos) and [drift_mos, date]
+        after_away = np.searchsorted(created, away_mos, side="right")
+        from_drift = np.searchsorted(created, drift_mos, side="left")
+        up_to_date = np.searchsorted(created, date.value, side="right")
+        # an activity is its contributor's latest at date if they don't act again by then
+        num_active = np.count_nonzero(next_activity[from_drift:up_to_date] > date.value)
+        num_drifting = np.count_nonzero(next_activity[after_away:from_drift] > date.value)
+        num_total = np.searchsorted(first_activity, date.value, side="right")
+        counts.append([num_active, num_drifting, num_total - (num_active + num_drifting)])
+    return counts
