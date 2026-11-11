@@ -8,7 +8,7 @@ from dateutil.relativedelta import *  # type: ignore
 from queries.ossf_score_query import ossf_score_query as osq
 import io
 import cache_manager.cache_facade as cf
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 from datetime import datetime
 
@@ -96,6 +96,7 @@ def toggle_popover(n, is_open):
         Input("repo-info-selection", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def ossf_scorecard(repo: str):
 

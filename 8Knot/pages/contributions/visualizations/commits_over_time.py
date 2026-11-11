@@ -6,7 +6,7 @@ import logging
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
 from queries.commits_query import commits_query as cmq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import cache_manager.cache_facade as cf
 from components.visualization import VisualizationAIO
@@ -64,6 +64,7 @@ gc_commits_over_time = VisualizationAIO(
         Input(f"date-interval-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def commits_over_time_graph(repolist, interval):
     # wait for data to asynchronously download and become available.

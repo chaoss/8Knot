@@ -9,7 +9,7 @@ import cache_manager.cache_facade as cf
 from components.visualization import VisualizationAIO
 from queries.prs_query import prs_query as prq
 from pages.utils.graph_utils import get_graph_time_values
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 
 PAGE = "contributions"
 VIZ_ID = "self-merge"
@@ -91,6 +91,7 @@ def graph_title(view):
         Input(f"graph-view-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def self_merge_graph(repolist, interval, view):
     start = time.perf_counter()

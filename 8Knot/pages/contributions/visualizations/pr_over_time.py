@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import logging
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 from queries.prs_query import prs_query as prq
 import time
 import cache_manager.cache_facade as cf
@@ -64,6 +64,7 @@ gc_pr_over_time = VisualizationAIO(
         Input(f"date-interval-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def prs_over_time_graph(repolist, interval):
     # wait for data to asynchronously download and become available.

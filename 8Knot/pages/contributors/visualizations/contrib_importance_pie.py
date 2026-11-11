@@ -9,7 +9,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.contributors_query import contributors_query as ctq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import app
@@ -156,6 +156,7 @@ def graph_title(k, action_type):
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def create_top_k_cntrbs_graph(repolist, action_type, top_k, start_date, end_date, bot_switch):
     # wait for data to asynchronously download and become available.
