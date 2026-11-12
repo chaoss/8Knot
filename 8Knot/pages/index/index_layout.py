@@ -2,7 +2,7 @@ from dash import html, dcc
 import dash
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
-from app import augur as collectoss
+from app import augur
 import os
 import logging
 
@@ -94,10 +94,10 @@ else:
 login_banner = create_login_disabled_banner()
 
 # Create login navbar (shown when login is enabled)
-login_navbar = create_login_navbar(collectoss)
+login_navbar = create_login_navbar(augur)
 
-# Create search bar with initial option from CollectOSS
-search_bar = create_search_bar(collectoss.initial_multiselect_option())
+# Create search bar with initial option from augur
+search_bar = create_search_bar(augur.initial_multiselect_option())
 
 # Create bottom navigation bar with request links
 navbar_bottom = create_bottom_navbar()
