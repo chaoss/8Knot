@@ -9,7 +9,7 @@ from pages.utils.graph_utils import create_heatmap_figure
 from queries.contributors_query import contributors_query as cnq
 from queries.cntrb_per_file_query import cntrb_per_file_query as cpfq
 from queries.repo_files_query import repo_files_query as rfq
-from app import augur as collectoss
+from app import augur
 from pages.utils.job_utils import nodata_graph, get_default_repo_with_data
 import pages.utils.preprocessing_utils as preproc_u
 import time
@@ -90,7 +90,7 @@ gc_cntrb_file_heatmap = VisualizationAIO(
 def repo_dropdown(repo_ids):
     # array to hold repo_id and git url pairing for dropdown
     data_array = []
-    for repo_id, label in zip(repo_ids, collectoss.repo_ids_to_git(repo_ids)):
+    for repo_id, label in zip(repo_ids, augur.repo_ids_to_git(repo_ids)):
         entry = {"value": str(repo_id), "label": label}
         data_array.append(entry)
 

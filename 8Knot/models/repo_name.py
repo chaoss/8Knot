@@ -1,37 +1,17 @@
+import re
+
+# scheme and "www." are optional so pasted URLs match the stored owner/repo in any of those forms
+_REPO_URL_PREFIX = re.compile(r"(?:https?://)?(?:www\.)?(github|gitlab)\.com/", re.IGNORECASE)
+
+
 def clean_repo_name(repo_name: str) -> tuple[str, str]:
     """
-    Clean repository names by removing GitHub and GitLab URL prefixes.
-
-    Supports both GitHub and GitLab repositories for future compatibility.
-
-    Args:
-        repo_name: The original repository name/URL
+    Strip a GitHub or GitLab URL prefix from a repository name.
 
     Returns:
         Tuple of (cleaned_name, platform) where platform is 'github', 'gitlab', or 'unknown'
     """
-    if not repo_name:
+    match = _REPO_URL_PREFIX.match(repo_name or "")
+    if not match:
         return repo_name, "unknown"
-
-    # Define prefixes with their corresponding platforms
-    github_prefixes = ["https://github.com/"]
-
-    gitlab_prefixes = ["https://gitlab.com/"]
-
-    cleaned_name = repo_name
-    repo_name_lower = repo_name.lower()
-
-    # Check GitHub prefixes
-    for prefix in github_prefixes:
-        if repo_name_lower.startswith(prefix):
-            cleaned_name = cleaned_name[len(prefix) :]
-            return cleaned_name, "github"
-
-    # Check GitLab prefixes
-    for prefix in gitlab_prefixes:
-        if repo_name_lower.startswith(prefix):
-            cleaned_name = cleaned_name[len(prefix) :]
-            return cleaned_name, "gitlab"
-
-    # No known prefix found
-    return cleaned_name, "unknown"
+    return repo_name[match.end() :], match.group(1).lower()

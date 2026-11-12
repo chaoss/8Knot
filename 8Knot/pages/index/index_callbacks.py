@@ -9,9 +9,10 @@ import dash_bootstrap_components as dbc
 import dash
 from dash import callback, html, clientside_callback, ClientsideFunction
 from dash.dependencies import Input, Output, State, MATCH
-from app import augur as collectoss
+from app import augur
 from flask_login import current_user
 import cache_manager.cache_facade as cf
+import cache_manager.search_options as search_options
 from queries.issues_query import issues_query as iq
 from queries.commits_query import commits_query as cq
 from queries.contributors_query import contributors_query as cnq
@@ -147,7 +148,7 @@ def _login_username_button_enabled(url):
                 dbc.NavItem(
                     dbc.NavLink(
                         f"{user_info['username']}",
-                        href=collectoss.user_account_endpoint,
+                        href=augur.user_account_endpoint,
                         id="login-navlink",
                         disabled=True,
                     ),
@@ -203,6 +204,28 @@ def _selection_options(values: list, current_options: list) -> list:
     return [options_by_value.get(v, {"value": v, "label": SearchItem.from_id(v).prefix(str(v))}) for v in values]
 
 
+def _users_cache() -> redis.StrictRedis:
+    return redis.StrictRedis(
+        host=os.getenv("REDIS_SERVICE_USERS_HOST", "redis-users"),
+        port=6379,
+        password=os.getenv("REDIS_PASSWORD", ""),
+        decode_responses=True,
+    )
+
+
+def _matching_user_groups(search_query: str) -> list:
+    """The logged-in user's private group options whose label contains the query."""
+    if not current_user.is_authenticated:
+        return []
+    try:
+        cached = _users_cache().get(f"{current_user.get_id()}_group_options")
+    except redis.exceptions.ConnectionError as e:
+        logging.error(f"MULTISELECT: Could not connect to users-cache. Error: {str(e)}")
+        return []
+    query = search_query.lower()
+    return [opt for opt in json.loads(cached) if query in opt["label"].lower()] if cached else []
+
+
 @callback(
     [Output("projects", "data"), Output("projects", "nothingFoundMessage")],
     [Input("projects", "searchValue")],
@@ -245,28 +268,14 @@ def dynamic_multiselect_options(user_in: str, selections, current_options):
             return dash.no_update
 
         try:
-            matched_options = cf.search_options_query(search_query, item_type=prefix_type)
-        except cf.SearchOptionsEmpty:
+            matched_options = search_options.query(search_query, item_type=prefix_type)
+        except search_options.SearchOptionsEmpty:
             logging.warning("search_options is empty, re-syncing it from CollectOSS")
-            cf.sync_search_options(collectoss.get_multiselect_options())
-            matched_options = cf.search_options_query(search_query, item_type=prefix_type)
+            search_options.sync(augur.get_multiselect_options())
+            matched_options = search_options.query(search_query, item_type=prefix_type)
 
-        user_options = []
-        if current_user.is_authenticated and prefix_type != "repo":
-            try:
-                users_cache = redis.StrictRedis(
-                    host=os.getenv("REDIS_SERVICE_USERS_HOST", "redis-users"),
-                    port=6379,
-                    password=os.getenv("REDIS_PASSWORD", ""),
-                    decode_responses=True,
-                )
-                users_cache.ping()
-                if users_cache.exists(f"{current_user.get_id()}_group_options"):
-                    user_options = json.loads(users_cache.get(f"{current_user.get_id()}_group_options"))
-                    matched_user_options = [opt for opt in user_options if search_query.lower() in opt["label"].lower()]
-                    matched_options = matched_options + matched_user_options
-            except redis.exceptions.ConnectionError as e:
-                logging.error(f"MULTISELECT: Could not connect to users-cache. Error: {str(e)}")
+        if prefix_type != "repo":
+            matched_options += _matching_user_groups(search_query)
 
         # Format options with prefixes based on their type and deduplicate
         formatted_opts = []
@@ -314,11 +323,11 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
     repos = [int(r) for r in user_vals if SearchItem.from_id(r) == SearchItem.REPO]
     logging.warning(f"REPOS: {repos}")
 
-    # names of CollectOSS groups or orgs
+    # names of augur groups or orgs
     names = [n for n in user_vals if SearchItem.from_id(n) == SearchItem.ORG]
 
     try:
-        orgs = collectoss.resolve_org_repos(names)
+        orgs = augur.resolve_org_repos(names)
     except SQLAlchemyError:
         logging.exception("SEARCH-BUTTON: Could not resolve organizations from CollectOSS")
         return (
@@ -335,14 +344,8 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
     if group_names and current_user.is_authenticated:
         logging.warning(f"LOGINBUTTON: USER LOGGED IN {current_user}")
         # TODO: implement more permanent interface
-        users_cache = redis.StrictRedis(
-            host=os.getenv("REDIS_SERVICE_USERS_HOST", "redis-users"),
-            port=6379,
-            password=os.getenv("REDIS_PASSWORD", ""),
-            decode_responses=True,
-        )
         try:
-            cached_groups = users_cache.get(f"{current_user.get_id()}_groups")
+            cached_groups = _users_cache().get(f"{current_user.get_id()}_groups")
             if cached_groups:
                 user_groups = json.loads(cached_groups)
                 logging.warning(f"USERS Groups: {type(user_groups)}, {user_groups}")
@@ -417,7 +420,7 @@ def show_repolist_alert(n_clicks, openness, repo_ids):
         dash.no_update | boolean: whether the help alert should be open.
     """
     print(repo_ids)
-    url_list = collectoss.repo_ids_to_git(repo_ids)
+    url_list = augur.repo_ids_to_git(repo_ids)
 
     url_list = [l[8:] if l.startswith("https://") else l for l in url_list]
 
@@ -497,7 +500,7 @@ def wait_queries(job_ids):
 )
 def run_queries(repos):
     """
-    Executes queries defined in /queries against CollectOSS
+    Executes queries defined in /queries against Augur
     instance for input Repos; caches results in Postgres.
 
     Args:
