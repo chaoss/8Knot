@@ -75,7 +75,7 @@ layout = dbc.Container(
 def repo_dropdown(repo_ids):
     # array to hold repo_id and git url pairing for dropdown
     data_array = []
-    for repo_id in repo_ids:
-        entry = {"value": str(repo_id), "label": augur.repo_id_to_git(int(repo_id))}
+    for repo_id, label in zip(repo_ids, augur.repo_ids_to_git(repo_ids)):
+        entry = {"value": str(repo_id), "label": label}
         data_array.append(entry)
     return data_array, str(repo_ids[0])

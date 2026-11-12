@@ -437,6 +437,42 @@ def _create_application_tables() -> None:
         )
         logging.warning("CREATED cache_bookkeeping TABLE")
 
+        cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+
+        cur.execute(
+            """
+            CREATE UNLOGGED TABLE IF NOT EXISTS search_options(
+                value text PRIMARY KEY,
+                label text NOT NULL,
+                search_text text NOT NULL,
+                item_type text NOT NULL,
+                -- separators become spaces, so "chaoss/collectoss-utils" yields the words chaoss, collectoss, utils
+                search_tsv tsvector GENERATED ALWAYS AS (
+                    to_tsvector('simple', regexp_replace(search_text, '[-_./]+', ' ', 'g'))
+                ) STORED
+            )
+            """
+        )
+        logging.warning("CREATED search_options TABLE")
+
+        # fastupdate off: the startup sync bulk-loads an empty table, and rows parked in the GIN pending
+        # list make the planner pick a seq scan until autovacuum merges them.
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS search_options_fts_idx
+            ON search_options
+            USING GIN (search_tsv) WITH (fastupdate = off)
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS search_options_trgm_idx
+            ON search_options
+            USING GIN (search_text gin_trgm_ops) WITH (fastupdate = off)
+            """
+        )
+        logging.warning("CREATED search_options GIN INDEXES")
+
         # commit changes, all-or-nothing.
         conn.commit()
 
