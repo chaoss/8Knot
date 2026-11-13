@@ -1,3 +1,19 @@
+ACTION_NAMES = {
+    "pull_request_open": "PR Opened",
+    "pull_request_comment": "PR Comment",
+    "pull_request_closed": "PR Closed",
+    "pull_request_merged": "PR Merged",
+    "pull_request_review_COMMENTED": "PR Review",
+    "pull_request_review_APPROVED": "PR Review",
+    "pull_request_review_CHANGES_REQUESTED": "PR Review",
+    "pull_request_review_DISMISSED": "PR Review",
+    "issue_opened": "Issue Opened",
+    "issue_closed": "Issue Closed",
+    "issue_comment": "Issue Comment",
+    "commit": "Commit",
+}
+
+
 def contributors_df_action_naming(df):
     """Renames verbs in 'Action' column
 
@@ -8,19 +24,9 @@ def contributors_df_action_naming(df):
         pd.DataFrame: processed dataframe
     """
     df = df.copy()
-    # update column values
-    df.loc[df["action"] == "pull_request_open", "action"] = "PR Opened"
-    df.loc[df["action"] == "pull_request_comment", "action"] = "PR Comment"
-    df.loc[df["action"] == "pull_request_closed", "action"] = "PR Closed"
-    df.loc[df["action"] == "pull_request_merged", "action"] = "PR Merged"
-    df.loc[df["action"] == "pull_request_review_COMMENTED", "action"] = "PR Review"
-    df.loc[df["action"] == "pull_request_review_APPROVED", "action"] = "PR Review"
-    df.loc[df["action"] == "pull_request_review_CHANGES_REQUESTED", "action"] = "PR Review"
-    df.loc[df["action"] == "pull_request_review_DISMISSED", "action"] = "PR Review"
-    df.loc[df["action"] == "issue_opened", "action"] = "Issue Opened"
-    df.loc[df["action"] == "issue_closed", "action"] = "Issue Closed"
-    df.loc[df["action"] == "issue_comment", "action"] = "Issue Comment"
-    df.loc[df["action"] == "commit", "action"] = "Commit"
+    # rename known actions in one pass; unknown actions keep their value
+    renamed = df["action"].map(ACTION_NAMES)
+    df["action"] = renamed.where(renamed.notna(), df["action"])
     df["cntrb_id"] = df["cntrb_id"].astype(str)  # contributor ids to strings
     df.rename(columns={"action": "Action"}, inplace=True)
     return df
