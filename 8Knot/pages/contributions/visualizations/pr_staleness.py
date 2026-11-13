@@ -8,7 +8,7 @@ import logging
 from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 from queries.prs_query import prs_query as prq
 import time
 import cache_manager.cache_facade as cf
@@ -119,6 +119,7 @@ gc_pr_staleness = VisualizationAIO(
         Input(f"stale-days-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def new_staling_prs_graph(repolist, interval, staling_interval, stale_interval):
     # conditional for the intervals to be valid options

@@ -9,7 +9,7 @@ import logging
 from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import app
 from queries.contributors_query import contributors_query as ctq
@@ -125,6 +125,7 @@ gc_active_drifting_contributors = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def active_drifting_contributors_graph(repolist, interval, drift_interval, away_interval, bot_switch):
     # conditional for the intervals to be valid options

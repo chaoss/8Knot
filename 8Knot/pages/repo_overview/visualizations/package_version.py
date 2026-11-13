@@ -9,7 +9,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.package_version_query import package_version_query as pvq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import cache_manager.cache_facade as cf
@@ -40,6 +40,7 @@ gc_package_version = VisualizationAIO(
         Input("repo-choices", "data"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def package_version_graph(repolist):
     # wait for data to asynchronously download and become available.

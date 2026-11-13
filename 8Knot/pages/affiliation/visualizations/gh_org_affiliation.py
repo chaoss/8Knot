@@ -8,7 +8,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.affiliation_query import affiliation_query as aq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 from rapidfuzz import fuzz, process
@@ -76,6 +76,7 @@ gc_gh_org_affiliation = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def gh_org_affiliation_graph(repolist, num, start_date, end_date, bot_switch):
     # wait for data to asynchronously download and become available.

@@ -6,7 +6,7 @@ import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.contributors_query import contributors_query as ctq
 import time
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import app
 import pages.utils.preprocessing_utils as preproc_utils
 import cache_manager.cache_facade as cf
@@ -35,6 +35,7 @@ gc_first_time_contributions = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def create_first_time_contributors_graph(repolist, bot_switch):
     # wait for data to asynchronously download and become available.

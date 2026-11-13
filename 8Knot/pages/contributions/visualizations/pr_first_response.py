@@ -10,7 +10,7 @@ from pages.utils.graph_utils import get_graph_time_values, baby_blue
 from queries.pr_response_query import pr_response_query as prr
 import io
 import cache_manager.cache_facade as cf
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import app
 from components.visualization import VisualizationAIO
@@ -62,6 +62,7 @@ gc_pr_first_response = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def pr_first_response_graph(repolist, num_days, bot_switch):
     while not_cached := cf.get_uncached(func_name=prr.__name__, repolist=repolist):

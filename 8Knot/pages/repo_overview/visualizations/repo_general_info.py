@@ -15,7 +15,7 @@ from queries.repo_files_query import repo_files_query as rfq
 from queries.repo_releases_query import repo_releases_query as rrq
 import io
 import cache_manager.cache_facade as cf
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 from datetime import datetime
 
@@ -78,6 +78,7 @@ def toggle_popover(n, is_open):
         Input("repo-info-selection", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def repo_general_info(repo):
 

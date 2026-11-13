@@ -10,7 +10,7 @@ from queries.prs_query import prs_query as prq
 from queries.pr_files_query import pr_file_query as prfq
 from queries.repo_files_query import repo_files_query as rfq
 from app import augur
-from pages.utils.job_utils import nodata_graph, get_default_repo_with_data
+from pages.utils.job_utils import nodata_graph, get_default_repo_with_data, POLL_INTERVAL_MS
 import time
 import cache_manager.cache_facade as cf
 from components.visualization import VisualizationAIO
@@ -123,6 +123,7 @@ def repo_dropdown(repo_ids):
     ],
     [Input(f"repo-{PAGE}-{VIZ_ID}", "value")],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def directory_dropdown(repo_id):
     # Convert to int since Mantine dropdown returns strings
@@ -195,6 +196,7 @@ def directory_dropdown(repo_id):
         Input(f"graph-view-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def cntrb_file_heatmap_graph(repo_id, directory, graph_view):
     start = time.perf_counter()
