@@ -2,6 +2,7 @@ from dash import dcc, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import pandas as pd
+import numpy as np
 import logging
 from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
@@ -10,7 +11,7 @@ from queries.affiliation_query import affiliation_query as aq
 from pages.utils.job_utils import nodata_graph
 import time
 import datetime as dt
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 import app
 import cache_manager.cache_facade as cf
 from components.visualization import VisualizationAIO
@@ -135,18 +136,20 @@ def process_data(df: pd.DataFrame, num, start_date, end_date):
     df["company_name"] = df["company_name"].astype(str)
     df = df.rename(columns={"cntrb_company": "orginal_name", "count": "contribution_count"})
 
-    # applies fuzzy matching comparing all rows to each other
-    df["match"] = df.apply(lambda row: fuzzy_match(df, row["company_name"]), axis=1)
+    # fuzzy matches comparing all rows to each other
+    names = df["company_name"].tolist()
+    matches = fuzzy_match(names)
 
     # changes company name to match other fuzzy matches
-    for x in range(0, len(df)):
-        # gets match values for the current row
-        matches = df.iloc[x]["match"]
-        for y in matches:
-            # for each match, change the name to its match and clear out match column as
-            # it will unnecessarily reapply changes
-            df.loc[y, "company_name"] = df.iloc[x]["company_name"]
-            df.loc[y, "match"] = ""
+    renamed = [False] * len(names)
+    for x in range(len(names)):
+        # a row renamed by an earlier match doesn't pass its own matches on
+        if renamed[x]:
+            continue
+        for y in matches[x]:
+            names[y] = names[x]
+            renamed[y] = True
+    df["company_name"] = np.array(names, dtype=object)
 
     # groups all same name company affiliation and sums the contributions
     df = (
@@ -172,15 +175,19 @@ def process_data(df: pd.DataFrame, num, start_date, end_date):
     return df
 
 
-def fuzzy_match(df, name):
+def fuzzy_match(names):
     """
-    This function compares each row to all of the other values in the company_name column and
-    outputs a list on if there is a fuzzy match between the different rows. This gives the values
-    necessary for the loop to change the company name if there is a match. 70 is the match value
-    threshold for the partial ratio to be considered a match
+    This function compares each name to all of the names and outputs, for each name, the positions
+    of the names that are a fuzzy match to it. This gives the values necessary for the loop to change
+    the company name if there is a match. 70 is the match value threshold for the partial ratio to be
+    considered a match
     """
-    matches = df.apply(lambda row: (fuzz.partial_ratio(row["company_name"], name, score_cutoff=70) >= 70), axis=1)
-    return [i for i, x in enumerate(matches) if x]
+    matches = []
+    # score blocks of 500 names at a time to bound memory for orgs with many company names
+    for start in range(0, len(names), 500):
+        scores = process.cdist(names, names[start : start + 500], scorer=fuzz.partial_ratio, score_cutoff=70)
+        matches += [np.flatnonzero(column >= 70).tolist() for column in scores.T]
+    return matches
 
 
 def create_figure(df: pd.DataFrame):
