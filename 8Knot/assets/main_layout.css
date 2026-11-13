@@ -270,8 +270,8 @@ a.sidebar-section-text {
     padding-right: 50px;
 }
 
-/* Release version in the bottom-left */
-.version-display {
+/* All footer text should be small */
+.navbar-bottom>p {
     color: var(--color-text-secondary);
     font-size: 13px;
     font-weight: 400;

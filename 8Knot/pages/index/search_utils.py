@@ -644,7 +644,7 @@ def create_bottom_navbar():
     ]
     return html.Footer(
         [
-            html.P(f"v{__version__}", className="version-display"),
+            html.P(f"v{__version__}"),
             html.P(
                 [
                 "© 2026 8Knot. Copyright © The Linux Foundation®. All rights reserved. The Linux Foundation has registered trademarks and uses trademarks.",
@@ -667,7 +667,6 @@ def create_bottom_navbar():
                 ". "
                 ],
                 style={"margin": 0},
-                className="version-display"
             ),
             dbc.Nav(
                 children=children
