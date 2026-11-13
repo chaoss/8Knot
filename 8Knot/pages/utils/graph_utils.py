@@ -1,3 +1,4 @@
+import os
 import datetime as dt
 
 import pandas as pd
@@ -123,3 +124,23 @@ def get_graph_time_values(interval):
         period = "M12"
 
     return x_r, x_name, hover, period
+
+
+def contributor_label():
+    """Column and display name to use when labelling contributors in a graph.
+
+    8Knot anonymizes contributors by default, labelling them with a truncated
+    contributor UUID. That is the right default for a public deployment, but a
+    deployment tracking only public repositories often wants the GitHub
+    username, which is already public information and much easier to read.
+
+    Set EIGHTKNOT_CONTRIBUTOR_LABEL=login to opt in. Anything else, including
+    unset, keeps the existing anonymized behavior. The graphs that call this are
+    background callbacks, so the variable has to reach worker-callback -- setting
+    it only on app-server does nothing.
+
+    Returns a (column, display name) pair.
+    """
+    if os.getenv("EIGHTKNOT_CONTRIBUTOR_LABEL", "id").lower() == "login":
+        return "login", "Contributor"
+    return "cntrb_id", "Contributor ID"
