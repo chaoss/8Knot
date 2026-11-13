@@ -30,6 +30,10 @@ from .login_utils import (
     is_login_enabled,
 )
 
+# Share-link modal — own module; must stay out of `create_app_stores()`
+# (mixing share UI into the stores list broke page rendering).
+from .share_components import create_share_modal
+
 # Note: Welcome sections are now imported in pages/landing/landing.py
 
 # Top bar with logos and navigation links
@@ -131,6 +135,7 @@ layout = html.Div(
                 justify="start",
             ),
             navbar_bottom,
+            create_share_modal(),
         ],
         fluid=True,
         className="dbc app-main-container",
