@@ -642,13 +642,24 @@ def create_bottom_navbar():
         )
         for item in nav_items
     ]
-
-    return dbc.NavbarSimple(
-        children=children,
-        brand=html.Span(f"v{__version__}", className="version-display"),
-        brand_href=None,
-        fluid=True,
-        fixed="bottom",
-        color="var(--bg-primary)",
-        dark=True,
+    return html.Footer(
+        [
+            html.P(f"v{__version__}"),
+            html.P(
+                [
+                    "© 2026 8Knot. Copyright © The Linux Foundation®. All rights reserved. The Linux Foundation has registered trademarks and uses trademarks.",
+                    html.Br(),
+                    "For more information, including terms of use, privacy policy, and trademark usage, please see our ",
+                    html.A(["Policies"], href="https://www.linuxfoundation.org/legal/policies"),
+                    " page. ",
+                    html.A(["Trademark Usage"], href="https://www.linuxfoundation.org/trademark-usage"),
+                    ". ",
+                    html.A(["Privacy Policy"], href="https://www.linuxfoundation.org/privacy"),
+                    ". ",
+                ],
+                style={"margin": 0},
+            ),
+            dbc.Nav(children=children),
+        ],
+        className="navbar-bottom",
     )

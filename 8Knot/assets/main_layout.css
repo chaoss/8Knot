@@ -259,10 +259,19 @@ a.sidebar-section-text {
     width: 100%;
     background-color: var(--bg-primary);
     border-top: 1px solid var(--bg-tertiary);
+
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    align-items: center;
+    height: 55px;
+
+    /* make space for the debug menu in development */
+    padding-right: 50px;
 }
 
-/* Release version in the bottom-left */
-.version-display {
+/* All footer text should be small */
+.navbar-bottom>p {
     color: var(--color-text-secondary);
     font-size: 13px;
     font-weight: 400;
