@@ -78,9 +78,7 @@ gc_gh_org_affiliation = VisualizationAIO(
 )
 def gh_org_affiliation_graph(repolist, num, start_date, end_date, bot_switch):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=aq.__name__, repolist=repolist):
-        logging.warning(f"{VIZ_ID}- WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=aq.__name__, repolist=repolist)
 
     start = time.perf_counter()
     logging.warning(f"{VIZ_ID}- START")

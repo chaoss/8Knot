@@ -65,9 +65,7 @@ gc_pr_assignment = VisualizationAIO(
 )
 def pr_assignment_graph(repolist, interval, bot_switch):
     # wait for data to asynchronously download and become available.
-    while not_cached := cf.get_uncached(func_name=praq.__name__, repolist=repolist):
-        logging.warning(f"{VIZ_ID} - WAITING ON DATA TO BECOME AVAILABLE")
-        time.sleep(0.5)
+    cf.wait_for_cache(func_name=praq.__name__, repolist=repolist)
 
     # data ready.
     start = time.perf_counter()
