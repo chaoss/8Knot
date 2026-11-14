@@ -428,6 +428,25 @@ def _create_application_tables() -> None:
 
         cur.execute(
             """
+            CREATE UNLOGGED TABLE IF NOT EXISTS contributor_engagement_query (
+                repo_id INTEGER,
+                cntrb_id UUID,
+                d1_first_issue_created_at TIMESTAMP,
+                d1_first_pr_opened_at TIMESTAMP,
+                d1_first_pr_commented_at TIMESTAMP,
+                d2_has_merged_pr BOOLEAN,
+                d2_created_many_issues BOOLEAN,
+                d2_total_comments INTEGER,
+                d2_has_pr_with_many_commits BOOLEAN,
+                d2_commented_on_multiple_prs BOOLEAN
+            )
+            """
+        )
+        logging.warning("CREATED contributor_engagement_query TABLE")
+
+
+        cur.execute(
+            """
             CREATE UNLOGGED TABLE IF NOT EXISTS cache_bookkeeping(
                 cache_func text,
                 repo_id int,

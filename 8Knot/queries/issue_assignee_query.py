@@ -75,3 +75,4 @@ def issue_assignee_query(self, repos):
     """
 
     logging.warning(f"{issue_assignee_query.__name__} COLLECTION - END")
+
