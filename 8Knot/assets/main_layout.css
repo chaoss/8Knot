@@ -38,6 +38,9 @@
     --multiselect-item-margin: 2px 4px;
 }
 
+.app-container>.container-fluid {
+    padding: auto 0;
+}
 
 /* Main Layout Container */
 
