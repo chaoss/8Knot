@@ -1,0 +1,70 @@
+name: Build Docker images
+on:
+  push:
+    branches:
+      - main
+      - dev
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  push-image:
+    name: Push image
+    # We don't push images on pull requests, we never try, but this is extra safety.
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read #  to fetch code (actions/checkout)
+      packages: write #  to push docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: setup-buildx
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set container metadata
+        uses: docker/metadata-action@v5
+        id: meta
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index,manifest
+        with:
+          annotations: |
+            org.opencontainers.image.title=eightknot
+          labels: |
+            org.opencontainers.image.title=eightknot
+          images: ghcr.io/${{ github.repository_owner }}/eightknot
+          # Pushes to the dev branch update the *:dev tag
+          # Releases update the *:latest tag and the *:<version> tag
+          # prerelease versions just have a *:<version> tag
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          annotations: ${{ steps.meta.outputs.annotations }}
+          context: .
+          file: ./docker/Dockerfile
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          # Only push if we've tagged the image in the metadata step
+          push: ${{ steps.meta.outputs.tags != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=container-eightknot
+          cache-to: type=gha,scope=container-eightknot,mode=min

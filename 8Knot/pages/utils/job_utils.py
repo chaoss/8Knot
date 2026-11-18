@@ -1,6 +1,9 @@
 import plotly.graph_objects as go
 import cache_manager.cache_facade as cf
 
+# ms the browser waits between polls for a graph callback's result; Dash's default is 1000
+POLL_INTERVAL_MS = 500
+
 columns = ["1", "2", "3"]
 
 # graph displayed if no data is available

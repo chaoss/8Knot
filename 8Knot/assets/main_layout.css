@@ -261,6 +261,13 @@ a.sidebar-section-text {
     border-top: 1px solid var(--bg-tertiary);
 }
 
+/* Release version in the bottom-left */
+.version-display {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+}
+
 
 /* Application Container */
 

@@ -5,15 +5,16 @@ This file uses raw SQL to create tables in Postgres.
 It's typically easiest and best-practice to use a db migration
 tool instead of doing error-prone manual administration like this.
 
-However, using sqlalchemy and alembic (Python db migration stack)
-would be a bit of a steep learning curve for people who just want to
-create a table in the cache. Most people who would be working on a
-project like this will know enough SQL to read the existing table
-definitions and create a new table as needed from those examples.
+Tables are still defined as raw CREATE UNLOGGED TABLE IF NOT EXISTS blocks
+below, so adding a table only takes SQL.
 
-Our data model is fairly simple, so for now the overhead of proper
-db migration tooling is mostly bloaty. We can return to this decision
-in the future if necessary.
+Those blocks can't change a table that already exists, so changes to
+existing tables are alembic migrations (migrations/), applied on boot. The
+CREATE blocks define a fresh cache and migrations upgrade existing ones,
+the groundwork for a persistent cache. Migrations are hand-written raw SQL.
+
+Existing caches start from the current schema, including issues_query.labels.
+Migration history starts empty; the first schema change gets revision 1.
 """
 
 """
@@ -48,6 +49,19 @@ for a query in the 'queries/' folder, name the table the same name
 as the query function. Name the columns of the table, and give their
 types, and everything should work!
 
+To change an existing table (add/drop/rename a column, change a type), add
+an alembic migration:
+
+    cd 8Knot/cache_manager
+    alembic revision -m "describe change"   # assigns the next numeric revision
+
+Write upgrade()/downgrade() as raw SQL with op.execute(...), and update the
+CREATE block too so fresh caches match. Migrations run on every boot. Never
+edit a shipped migration; add a new one.
+
+_ensure_repo_id_indexes() is not a migration: CREATE INDEX IF NOT EXISTS is
+safe to re-run, so it runs on every boot.
+
 Here's a list of types that postgres defines:
 https://www.postgresql.org/docs/current/datatype.html
 
@@ -60,11 +74,15 @@ Generally, 'int' is good for integers,
 """
 
 import logging
-import sys
 import os
+import sys
+import time
+
 import psycopg2 as pg
 import redis
-import time
+from alembic import command
+from alembic.config import Config
+from psycopg2 import sql as pg_sql
 
 
 def _env_int(var: str, default: int) -> int:
@@ -99,7 +117,7 @@ def _env_int(var: str, default: int) -> int:
 
 # doesn't use relative import syntax "import .cx_common" because
 # cx_common is a neighbor of script, thus is available in PYTHON_PATH
-from cx_common import init_cx_string, cache_cx_string
+from cx_common import cache_cx_string, env_dbname, init_cx_string
 
 
 def _connect_with_retry(connection_string, max_retries=5, retry_delay=3):
@@ -139,6 +157,8 @@ def _create_application_database() -> None:
 
     This function creates the 'augur_cache' database, which will
     contain all of the tables where we'll cache data for visualization.
+
+    Uses CACHE_DB_NAME.
     """
 
     # Connect to the dbms at top-level
@@ -151,19 +171,14 @@ def _create_application_database() -> None:
     # required so that we can create a database
     conn.autocommit = True
 
-    # check if application db already exists
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = 'augur_cache'")
-    exists = cur.fetchone()
-
-    # create application db if it doesn't already exist
-    if not exists:
-        logging.warning("CREATING augur_cache DATABASE")
-        cur.execute("CREATE DATABASE augur_cache")
-
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (env_dbname,))
+            if not cur.fetchone():
+                logging.warning(f"CREATING {env_dbname} DATABASE")
+                cur.execute(pg_sql.SQL("CREATE DATABASE {}").format(pg_sql.Identifier(env_dbname)))
+    finally:
+        conn.close()
 
 
 def _create_application_tables() -> None:
@@ -206,7 +221,8 @@ def _create_application_tables() -> None:
                 reporter_id text,
                 issue_closer text,
                 created_at text,
-                closed_at text
+                closed_at text,
+                labels text
             )
             """
         )
@@ -427,33 +443,123 @@ def _create_application_tables() -> None:
     logging.warning("ALL TABLES COMMITTED SUCCESSFULLY")
 
 
-def _flush_redis_broker() -> None:
-    """
-    Flush the Redis broker so it stays in sync with postgres-cache.
+def _ensure_repo_id_indexes() -> None:
+    """Index repo_id on every cache table that has the column.
 
-    postgres-cache uses UNLOGGED tables, so all cached data is lost on
-    restart. If Redis still holds stale Celery task messages or results
-    from a previous run, workers pick them up and poll for data that no
-    longer exists, causing deadlocks. Flushing here guarantees a clean
-    broker state every time the cache is (re)initialized.
+    Cache reads filter on repo_id, so a missing index means a sequential scan.
+    Tables are discovered at runtime, so new tables are covered
+    automatically, and invalid indexes from interrupted builds are recreated.
+    cache_bookkeeping gets a (cache_func, repo_id) index instead.
+    """
+    conn = _connect_with_retry(cache_cx_string)
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT columns.table_name
+                FROM information_schema.columns AS columns
+                JOIN information_schema.tables AS tables
+                  ON tables.table_catalog = columns.table_catalog
+                 AND tables.table_schema = columns.table_schema
+                 AND tables.table_name = columns.table_name
+                WHERE columns.table_schema = 'public'
+                  AND columns.column_name = 'repo_id'
+                  AND columns.table_name != 'cache_bookkeeping'
+                  AND tables.table_type = 'BASE TABLE'
+                """
+            )
+            tables = [row[0] for row in cur.fetchall()]
+
+            indexes = [(f"{table}_repo_id_idx", table, ("repo_id",)) for table in tables] + [
+                ("cache_bookkeeping_func_repo_idx", "cache_bookkeeping", ("cache_func", "repo_id"))
+            ]
+            cur.execute(
+                """
+                SELECT index_class.relname
+                FROM pg_catalog.pg_index AS index_info
+                JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index_info.indexrelid
+                JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = index_class.relnamespace
+                WHERE namespace.nspname = 'public' AND NOT index_info.indisvalid
+                """
+            )
+            invalid_indexes = {row[0] for row in cur.fetchall()}
+
+            for index_name, table, columns in indexes:
+                if index_name in invalid_indexes:
+                    cur.execute(
+                        pg_sql.SQL("DROP INDEX CONCURRENTLY IF EXISTS {}.{}").format(
+                            pg_sql.Identifier("public"), pg_sql.Identifier(index_name)
+                        )
+                    )
+                cur.execute(
+                    pg_sql.SQL("CREATE INDEX CONCURRENTLY IF NOT EXISTS {} ON {}.{} ({})").format(
+                        pg_sql.Identifier(index_name),
+                        pg_sql.Identifier("public"),
+                        pg_sql.Identifier(table),
+                        pg_sql.SQL(", ").join(map(pg_sql.Identifier, columns)),
+                    )
+                )
+    finally:
+        conn.close()
+    logging.warning(f"db_init: ensured repo_id indexes ({len(tables)} tables)")
+
+
+def _cache_schema_exists() -> bool:
+    """Return whether this database already contains an 8Knot cache schema."""
+    conn = _connect_with_retry(cache_cx_string)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                      AND table_type = 'BASE TABLE'
+                      AND table_name != 'alembic_version'
+                )
+                """
+            )
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def _alembic_config() -> Config:
+    """Alembic config for migrations/ next to this file; env.py supplies the database URL."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    return Config(os.path.join(here, "alembic.ini"))
+
+
+def _stamp_cache_schema() -> None:
+    """Mark a new, empty cache as current before creating its tables."""
+    command.stamp(_alembic_config(), "head")
+    logging.warning("db_init: stamped fresh cache at alembic head")
+
+
+def _run_cache_migrations() -> None:
+    """Apply pending revisions to an existing cache.
+
+    Upgrade rather than stamp head, which would skip migrations on caches
+    that have not yet adopted versioning.
+    """
+    command.upgrade(_alembic_config(), "head")
+    logging.warning("db_init: cache schema upgraded to alembic head")
+
+
+def _flush_redis_broker() -> None:
+    """Clear stale Celery messages and results when the cache is initialized.
+
+    The broker is separate from the Redis instance used for user sessions.
     """
     broker_host = os.getenv("REDIS_SERVICE_HOST", "redis-broker")
     broker_port = _env_int("REDIS_SERVICE_PORT", 6379)
     broker_password = os.getenv("REDIS_PASSWORD", "")
 
-    users_host = os.getenv("REDIS_SERVICE_USERS_HOST", "redis-users")
-    users_port = _env_int("REDIS_SERVICE_USERS_PORT", 6379)
-
-    for name, host, port in [
-        ("redis-broker", broker_host, broker_port),
-        ("redis-users", users_host, users_port),
-    ]:
-        try:
-            r = redis.StrictRedis(host=host, port=port, password=broker_password)
-            r.flushall()
-            logging.warning(f"db_init: FLUSHED {name} ({host}:{port})")
-        except Exception as e:
-            logging.warning(f"db_init: could not flush {name}: {e}")
+    r = redis.StrictRedis(host=broker_host, port=broker_port, password=broker_password)
+    r.flushall()
+    logging.warning(f"db_init: FLUSHED redis-broker ({broker_host}:{broker_port})")
 
 
 def db_init() -> int:
@@ -461,13 +567,24 @@ def db_init() -> int:
         # don't need to check return values- errors propogate as exceptions,
         # which will halt init altogether.
 
-        # create augur_cache db if it doesn't already exist.
+        # create the configured cache database if it doesn't already exist.
         _create_application_database()
 
-        # add tables to augur_cache db if they don't already exist.
+        schema_exists = _cache_schema_exists()
+
+        # Stamp before creating tables, so a retry after an interrupted
+        # bootstrap doesn't replay old migrations over the new tables.
+        if not schema_exists:
+            _stamp_cache_schema()
+
         _create_application_tables()
 
-        # flush redis so broker state matches the fresh postgres-cache.
+        if schema_exists:
+            _run_cache_migrations()
+
+        # Reconcile indexes after migrations so they reflect the final schema.
+        _ensure_repo_id_indexes()
+
         _flush_redis_broker()
 
         logging.warning("db_init: POSTGRES CACHE SUCCESSFULLY INITIALIZED")
@@ -475,7 +592,7 @@ def db_init() -> int:
         return 0
 
     except Exception as e:
-        logging.critical(f"POSTGRES ERROR: {e}")
+        logging.critical(f"INITIALIZATION ERROR: {e}")
         return 1
 
 

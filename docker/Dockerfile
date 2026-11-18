@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi9/python-39:latest
 
-COPY --from=ghcr.io/astral-sh/uv:0.4.9 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/app-root/

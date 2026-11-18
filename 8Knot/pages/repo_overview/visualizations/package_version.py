@@ -9,7 +9,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.package_version_query import package_version_query as pvq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import cache_manager.cache_facade as cf
@@ -23,8 +23,9 @@ gc_package_version = VisualizationAIO(
     VIZ_ID,
     title="Package Version Updates",
     graph_info="""
-        Visualizes for each packaged dependency, if it is up to date and if not if it is
-        less than 6 months out, between 6 months and a year, or greater than a year.
+        Shows the version freshness of each packaged dependency in the repository.
+        Dependencies are grouped by how outdated they are: up to date, less than 6 months
+        behind, between 6 months and 1 year behind, or more than 1 year behind.
     """,
     controls=[],
     class_name="dark-card",
@@ -39,6 +40,7 @@ gc_package_version = VisualizationAIO(
         Input("repo-choices", "data"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def package_version_graph(repolist):
     # wait for data to asynchronously download and become available.

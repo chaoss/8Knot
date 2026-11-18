@@ -4,7 +4,7 @@ If you are interested in making a code contribution and would like to learn more
 
 1. Find an issue that you are interested in addressing or a feature that you would like to add.
 2. Fork the repository associated with the issue to your local GitHub organization. This means that you will have a copy of the repository under your-GitHub-username/repository-name.
-3. Clone the repository to your local machine using git clone [https://github.com/oss-aspen/8Knot.git](https://github.com/oss-aspen/8Knot.git).
+3. Clone the repository to your local machine using git clone [https://github.com/chaoss/8Knot.git](https://github.com/chaoss/8Knot.git).
 4. Create a new branch for your fix using git checkout -b branch-name-here.
 5. Make the appropriate changes for the issue you are trying to address or the feature that you want to add.
 6. Use git add insert-paths-of-changed-files-here to add the file contents of the changed files to the "snapshot" git uses to manage the state of the project, also known as the index.
@@ -20,14 +20,14 @@ If you are interested in making a code contribution and would like to learn more
 
 ## Steps to create a new visualization
 
-1. Make a copy of the [visualization template](https://github.com/oss-aspen/8Knot/blob/dev/8Knot/pages/visualization_template/viz_template.py) for the visualization and put it in the folder of the [page](https://github.com/oss-aspen/8Knot/tree/dev/8Knot/pages) you want to add it to
+1. Make a copy of the [visualization template](https://github.com/chaoss/8Knot/blob/dev/8Knot/pages/visualization_template/viz_template.py) for the visualization and put it in the folder of the [page](https://github.com/chaoss/8Knot/tree/dev/8Knot/pages) you want to add it to
 2. Once the file is created, import the card from the visualization file to the respective page file and put it into the layout
 IF you need to add a new query:
 3. add a new query file in the queries folder, using the other existing queries as a template
 
 ## Steps to create a new page
 
-1. Add a folder to the [pages](https://github.com/oss-aspen/8Knot/tree/dev/pages) folder with a visualization folder inside and a .py for the respective page
+1. Add a folder to the [pages](https://github.com/chaoss/8Knot/tree/dev/pages) folder with a visualization folder inside and a .py for the respective page
 2. Use the other pages for format, making sure to include dash.register_page(__name__, order=)
 
 ## Where can I go for help?

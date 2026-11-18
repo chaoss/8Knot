@@ -10,7 +10,7 @@ import logging
 from dateutil.relativedelta import *  # type: ignore
 from pages.utils.graph_utils import baby_blue
 from queries.contributors_query import contributors_query as ctq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import app
 import pages.utils.preprocessing_utils as preproc_utils
@@ -145,6 +145,7 @@ def graph_title(window_width):
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def create_contrib_prolificacy_over_time_graph(repolist, threshold, window_width, step_size, bot_switch):
     # wait for data to asynchronously download and become available.

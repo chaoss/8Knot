@@ -1,42 +1,27 @@
 """
-This file contains the interface by which application code
-accesses with the postgres caching database.
-
-For most web-app database requirements, it's adviseable
-to use an ORM like SQLAlchemy rather than the direct driver
-for the datebase like psycopg2. An ORM like SQLAlchemy makes db programming
-more pythonic and require less direct db administration in application
-code.
-
-We've considered this alternative, and have decided that the
-clarity and lower-overhead of using psycopg2 for our relatively simple
-data model is preferred for the time being.
-
-Specifically, SQLAlchemy has documented lower performance for
-high insertion and read volumes because it requires python-object
-coersion as a convenience abstraction. This uses more memory than we
-typically have available.
-
-We're not experts in the field of ORMs and DB drivers, and would be
-happy to be proven wrong about the apparent performance tradeoff.
+Interface to the PostgreSQL cache. Source results stream through SQLAlchemy;
+bulk cache writes use psycopg2.
 """
 
 import logging
-from uuid import uuid4
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 from psycopg2 import sql as pg_sql
 import pandas as pd
+from sqlalchemy.exc import DBAPIError
+from db_manager.collectoss_manager import CollectOSSManager
 
 # requires relative import syntax "import .cx_common" because
 # other files importing cache_facade need to know how to resolve
 # .cx_common- interpreter is invoked at a higher level, so relative
 # import required.
-from .cx_common import db_cx_string, env_augur_schema, cache_cx_string
+from .cx_common import cache_cx_string
+
+# The engine is opened lazily in the worker process and reused between tasks.
+collectoss = CollectOSSManager(worker_query=True)
 
 
 def cache_query_results(
-    db_connection_string: str,
     query: str,
     vars: tuple[tuple],
     target_table: str,
@@ -44,11 +29,10 @@ def cache_query_results(
     server_pagination=2000,
     client_pagination=2000,
 ) -> None:
-    """Runs {query} against primary database specified by {db_connection_string} with variables {vars}.
+    """Runs {query} against CollectOSS with variables {vars}.
     Retrieves results from db with paginations {server_pagination} and {client_pagination}.
 
     Args:
-        db_connection_string (str): _description_
         query (str): _description_
         vars (tuple(tuple)): _description_
         target_table (str): _description_
@@ -57,19 +41,10 @@ def cache_query_results(
         client_pagination (int, optional): _description_. Defaults to 2000.
     """
     logging.warning(f"{target_table} -- CQR CACHE_QUERY_RESULTS BEGIN")
-    with pg.connect(
-        db_connection_string,
-        options=f"-c search_path={env_augur_schema}",
-    ) as augur_conn:
-        with augur_conn.cursor(name=f"{target_table}-{uuid4()}") as augur_cur:
-            # set number of rows we want from primary db at a time
-            augur_cur.itersize = server_pagination
-
-            logging.warning(f"{target_table} -- CQR EXECUTING QUERY")
-
-            # execute query
-            augur_cur.execute(query, vars)
-
+    with collectoss.get_engine().connect() as collectoss_conn:
+        logging.warning(f"{target_table} -- CQR EXECUTING QUERY")
+        # A server-side cursor keeps large results out of worker memory.
+        with collectoss_conn.execution_options(yield_per=server_pagination).exec_driver_sql(query, vars) as result:
             logging.warning(f"{target_table} -- CQR STARTING TRANSACTION")
             # connect to cache
             with pg.connect(cache_cx_string) as cache_conn:
@@ -82,17 +57,13 @@ def cache_query_results(
 
                 # iterate through pages of rows from server.
                 logging.warning(f"{target_table} -- CQR FETCHING AND STORING ROWS")
-                while rows := augur_cur.fetchmany(client_pagination):
-                    if not rows:
-                        # we're out of rows
-                        break
-
+                while rows := result.fetchmany(client_pagination):
                     # write available rows to cache.
                     with cache_conn.cursor() as cache_cur:
                         execute_values(
                             cur=cache_cur,
                             sql=composed_query,
-                            argslist=rows,
+                            argslist=[tuple(row) for row in rows],
                             page_size=client_pagination,
                         )
 
@@ -187,17 +158,19 @@ def caching_wrapper(func_name: str, query: str, repolist: list[int], n_repolist_
         # STEP 2: Query for those repos
         logging.warning(f"{func_name} COLLECTION - EXECUTING CACHING QUERY")
         cache_query_results(
-            db_connection_string=db_cx_string,
             query=query,
             vars=uncached_repos,
             target_table=func_name,
             bookkeeping_data=tuple({"cache_func": func_name, "repo_id": r} for r in repolist),
         )
-    except Exception as e:
-        logging.critical(f"{func_name}_POSTGRES ERROR: {e}")
+    except Exception as error:
+        logging.exception(f"{func_name}_POSTGRES ERROR")
 
-        # raise exception so caching function knows to restart
-        raise Exception(e)
+        # SQLAlchemy wraps driver errors. Preserve the cancellation type so
+        # Celery's dont_autoretry_for still prevents repeated timed-out queries.
+        if isinstance(error, DBAPIError) and isinstance(error.orig, pg.errors.QueryCanceled):
+            raise error.orig from error
+        raise
 
 
 def retrieve_from_cache(

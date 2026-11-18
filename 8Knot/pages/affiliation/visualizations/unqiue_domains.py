@@ -7,7 +7,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.commits_query import commits_query as cmq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import app
@@ -73,6 +73,7 @@ gc_unique_domains = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def unique_domains_graph(repolist, num, start_date, end_date, bot_switch):
     # wait for data to asynchronously download and become available.

@@ -17,17 +17,14 @@ layout = dbc.Container(
         dbc.Row(
             dbc.Col(gc_contribution_file_heatmap, xl=10),
             className="visualization-row",
-            id="contribution-file-heatmap",
         ),
         dbc.Row(
             dbc.Col(gc_cntrb_file_heatmap, xl=10),
             className="visualization-row",
-            id="cntrb-file-heatmap",
         ),
         dbc.Row(
             dbc.Col(gc_reviewer_file_heatmap, xl=10),
             className="visualization-row",
-            id="reviewer-file-heatmap",
         ),
     ],
     fluid=True,

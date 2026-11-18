@@ -74,11 +74,11 @@ def check_required_services():
         if not os.getenv(var):
             checks.append(f"Missing required environment variable: {var}")
 
-    # Check database connectivity (if augur manager is available)
+    # Check database connectivity (if CollectOSS manager is available)
     try:
-        from db_manager.augur_manager import AugurManager
+        from db_manager.collectoss_manager import CollectOSSManager
 
-        augur = AugurManager()
+        augur = CollectOSSManager()
         engine = augur.get_engine()
         with engine.connect() as conn:
             # opening the connection tests if database is reachable

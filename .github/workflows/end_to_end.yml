@@ -15,7 +15,8 @@ permissions: {}
 jobs:
   test-e2e-podman:
     name: End-to-end test (Podman)
-    runs-on: ubuntu-latest
+    # ubuntu-latest (26.04) breaks rootless Podman network teardown
+    runs-on: ubuntu-24.04
     steps:
       - name: Remove unnecessary files from the base image
         run: |
@@ -66,6 +67,9 @@ jobs:
 
           yq eval -i '.services.mock-db.image = "ghcr.io/chaoss/augur_empty_database:latest"' docker-compose.yml
 
+          # gate db-init on service_started (podman compose skips healthchecks)
+          yq eval -i '.services.db-init.depends_on.postgres-cache.condition = "service_started"' docker-compose.yml
+
       - name: Setup Podman Compose
         uses: webgtx/setup-podman-compose@v1
 
@@ -77,7 +81,7 @@ jobs:
           Database connection established successfully!
           ALL TABLES COMMITTED SUCCESSFULLY
           POSTGRES CACHE SUCCESSFULLY INITIALIZED
-          AUGUR: Connection to DB succeeded
+          CollectOSS: Connection to DB succeeded
           Listening at: http://0.0.0.0:8080
           Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
           /docker-entrypoint.sh: Configuration complete; ready for start up
@@ -163,7 +167,7 @@ jobs:
           Database connection established successfully!
           ALL TABLES COMMITTED SUCCESSFULLY
           POSTGRES CACHE SUCCESSFULLY INITIALIZED
-          AUGUR: Connection to DB succeeded
+          CollectOSS: Connection to DB succeeded
           Listening at: http://0.0.0.0:8080
           Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
           /docker-entrypoint.sh: Configuration complete; ready for start up

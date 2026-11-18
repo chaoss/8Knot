@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from db_manager.augur_manager import AugurManager
+from db_manager.collectoss_manager import CollectOSSManager
 from app import celery_app
 import cache_manager.cache_facade as cf
 

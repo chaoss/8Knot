@@ -26,6 +26,8 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 
+from metadata import __version__
+
 
 def search_short_query(query: str, options: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -616,15 +618,15 @@ def create_bottom_navbar():
     nav_items = [
         {
             "text": "Visualization request",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=enhancement%2Cvisualization&template=visualizations.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=enhancement%2Cvisualization&template=visualizations.md",
         },
         {
             "text": "Bug",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=bug&template=bug_report.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=bug&template=bug_report.md",
         },
         {
             "text": "Repo/Org Request",
-            "href": "https://github.com/oss-aspen/8Knot/issues/new?assignees=&labels=augur&template=augur_load.md",
+            "href": "https://github.com/chaoss/8Knot/issues/new?assignees=&labels=augur&template=augur_load.md",
         },
     ]
 
@@ -643,8 +645,8 @@ def create_bottom_navbar():
 
     return dbc.NavbarSimple(
         children=children,
-        brand="",
-        brand_href="#",
+        brand=html.Span(f"v{__version__}", className="version-display"),
+        brand_href=None,
         fluid=True,
         fixed="bottom",
         color="var(--bg-primary)",

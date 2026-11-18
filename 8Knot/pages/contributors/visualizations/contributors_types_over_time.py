@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 from queries.contributors_query import contributors_query as ctq
 import time
 import app
@@ -85,6 +85,7 @@ gc_contributors_over_time = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def create_contrib_over_time_graph(repolist, contribs, interval, bot_switch):
     # wait for data to asynchronously download and become available.

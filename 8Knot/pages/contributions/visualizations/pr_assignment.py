@@ -8,7 +8,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
 from queries.pr_assignee_query import pr_assignee_query as praq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import app
 import cache_manager.cache_facade as cf
@@ -62,6 +62,7 @@ gc_pr_assignment = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def pr_assignment_graph(repolist, interval, bot_switch):
     # wait for data to asynchronously download and become available.

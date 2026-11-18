@@ -7,7 +7,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.affiliation_query import affiliation_query as aq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import app
@@ -130,6 +130,7 @@ gc_org_core_contributors = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def compay_associated_activity_graph(
     repolist,

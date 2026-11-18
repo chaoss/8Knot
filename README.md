@@ -1,8 +1,8 @@
 # 8Knot
 
-![Pre-Commit](https://github.com/oss-aspen/8Knot/actions/workflows/pre-commit.yml/badge.svg)
-![Build-Push](https://github.com/oss-aspen/8Knot/actions/workflows/build-push-quay.yml/badge.svg)
-![Docker Compose](https://github.com/oss-aspen/8Knot/actions/workflows/docker-compose-build.yml/badge.svg)
+![Pre-Commit](https://github.com/chaoss/8Knot/actions/workflows/pre-commit.yml/badge.svg)
+![Build-Push](https://github.com/chaoss/8Knot/actions/workflows/build-push-quay.yml/badge.svg)
+![Docker Compose](https://github.com/chaoss/8Knot/actions/workflows/docker-compose-build.yml/badge.svg)
 
 Welcome to 8Knot!
 
@@ -161,6 +161,8 @@ A sample file illustrating the format is available in `.env.sample` that can be 
 
 These credentials are suitable for development, but please replace any secrets with different values in production.
 
+Optional [source database timeout settings](docs/configuration.md) are documented separately.
+
 8Knot doesn't handle user accounts or data collection requests on its own. To support these features, you'll need to add the
 following additional configuration to your `.env` file.
 
@@ -203,6 +205,9 @@ We use containers to minimize the installation requirements for development and 
 
 We use Docker's Compose feature to spin up all application resources together. Please make sure you have Docker Compose installed on your system. You can find documentation on doing so here: [Docker Compose](https://docs.docker.com/compose/install)
 
+For local development, you can start with CollectOSS's
+[ready-to-use sample database](https://docs.collectoss.org/en/latest/getting-started/sample-database.html).
+
 
 #### Option 1: Using Podman (Recommended)
 
@@ -240,10 +245,13 @@ If you're using Podman, you can use either `podman compose` or `docker compose` 
 
 Using podman-compose directly:
 ```bash
-# Start the application
+# Start the application with ONE of these two commands (not both):
+
+# a) with one worker of each kind
 podman compose up --build
 
-# Scale worker pools (recommended)
+# b) or, recommended, with two query and two callback workers, which avoids
+#    a known deadlock (see "Option 2: Using Docker" below)
 podman compose up --build --scale worker-query=2 --scale worker-callback=2
 
 # Stop the application
@@ -255,8 +263,10 @@ podman compose down --volumes
 
 Using docker compose with Podman:
 ```bash
-# The same Docker Compose commands work with Podman if you've set up the compatibility layer
+# The same Docker Compose commands work with Podman if you've set up the compatibility layer.
+# As above, start the application with ONE of these two commands (not both):
 docker compose up --build
+# or, recommended:
 docker compose up --build --scale worker-query=2 --scale worker-callback=2
 ```
 
@@ -320,9 +330,15 @@ A concrete example: I have 6 CPU's allocated to my Docker runtime, so Celery wor
 However, there are 7 visualizations on the Overview page. Therefore, I will scale the 'callback_worker' pod to 2 instances,
 guaranteeing that there are (2 \* #CPUs = 12) available processing celery threads, ensuring that the known deadlock will be avoided.
 
+To do this, start the application with the command below **instead of** `docker compose up --build` above. It starts the whole application with the scaled workers, so don't run both:
+
 ```bash
 docker compose up --build --scale worker-query=2 --scale worker-callback=2
 ```
+
+> **Out of Memory (OOM) issues:** If your local instance is running out of memory, try reducing the number of concurrent workers
+> by lowering the `--concurrency` value in `docker-compose.yml` for the `worker-callback` and `worker-query` services.
+> The default concurrency is 8; reducing it to 2 or 4 can significantly reduce memory usage at the cost of slower data loading.
 
 To stop the application:
 
@@ -356,6 +372,8 @@ There need to be (#visualizations + 1) celery threads available for the callback
 A concrete example: I have 6 CPU's allocated to my Docker runtime, so Celery workers will default to a concurrency of 6 processes.
 However, there are 7 visualizations on the Overview page. Therefore, I will scale the 'callback_worker' pod to 2 instances,
 guaranteeing that there are (2 \* #CPUs = 12) available processing celery threads, ensuring that the known deadlock will be avoided.
+
+To do this, start the application with the command below **instead of** `podman compose up --build` above. It starts the whole application with the scaled workers, so don't run both:
 
 ```bash
 podman compose up --build --scale worker-query=2 --scale worker-callback=2
