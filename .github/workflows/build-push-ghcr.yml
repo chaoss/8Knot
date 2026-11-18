@@ -60,7 +60,7 @@ jobs:
         with:
           annotations: ${{ steps.meta.outputs.annotations }}
           context: .
-          file: ./Dockerfile
+          file: ./docker/Dockerfile
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
           # Only push if we've tagged the image in the metadata step
