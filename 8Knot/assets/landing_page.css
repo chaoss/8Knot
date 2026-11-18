@@ -143,6 +143,15 @@
 }
 
 
+/* Copyright footer between hero and welcome-content divider */
+
+.landing-footer {
+    margin: 0;
+    padding: 0 var(--spacing-lg) var(--spacing-md);
+    text-align: center;
+}
+
+
 /* Welcome Content Section */
 
 .landing-welcome-content {
