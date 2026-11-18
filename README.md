@@ -6,7 +6,7 @@
 
 Welcome to 8Knot!
 
-## [Example of Application](https://eightknot.osci.io/)
+## [Example of Application](https://eightknot.io/)
 
 ## Introduction
 
@@ -131,7 +131,7 @@ We would prefer any initial communication be through Matrix but if you would pre
 
 If you would like to see the current state of our application, we would love any user-stories or bug-reports from visiting our alpha-deployment!
 
-[8Knot](https://eightknot.osci.io/)
+[8Knot](https://eightknot.io/)
 
 If you would prefer to look at our most up-to-date work, please check out the following section.
 
