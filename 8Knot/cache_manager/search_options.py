@@ -22,7 +22,7 @@ def sync(load_options: Callable[[], list[dict[str, str]]]) -> None:
     """
     Makes postgres-cache's search_options table match the searchbar options from CollectOSS:
     changed rows are upserted and rows no longer in CollectOSS are deleted.
-    An empty list is treated as a failed read of CollectOSS, so the table is left unchanged.
+    An empty list is treated as a failed read of CollectOSS: the table is left unchanged and RuntimeError is raised.
 
     Args:
         load_options: Callable returning [{"label": str, "value": str}, ...] from the CollectOSS
@@ -36,7 +36,7 @@ def sync(load_options: Callable[[], list[dict[str, str]]]) -> None:
             options = load_options()
             if not options:
                 logging.warning("search_options - NO OPTIONS FROM COLLECTOSS, INDEX LEFT UNCHANGED")
-                return
+                raise RuntimeError("CollectOSS returned no search options")
 
             # keyed by value: ON CONFLICT can't update the same row twice in one statement
             rows = {}
@@ -79,7 +79,7 @@ def query(
 ) -> list[dict[str, str]]:
     """
     Searches search_options in postgres-cache by word prefix (full-text search on search_tsv) and,
-    for queries of 3+ characters, by substring and trigram similarity (pg_trgm) for typo tolerance.
+    for queries of 2+ characters, by substring and, for 3+ characters, trigram similarity (pg_trgm) for typo tolerance.
 
     Args:
         query_str: User's search query (without repo:/org: prefix). A pasted repo URL is reduced
@@ -102,7 +102,9 @@ def query(
     params = {
         "raw_query": cleaned_query,
         "tsquery": " & ".join(f"{token}:*" for token in tokens),
-        # trigrams need 3+ characters, so shorter queries only match word prefixes
+        # trigrams need 3+ characters; 2-character queries add a substring match, 1-character ones only match
+        # word prefixes (a substring match on a single character matches nearly every row)
+        "substring_query": len(cleaned_query) > 1,
         "long_query": len(cleaned_query) > 2,
         "repo_name_pattern": f"%/{escaped_like}",
         "prefix_pattern": f"{escaped_like}%",
@@ -121,10 +123,8 @@ def query(
                 FROM search_options
                 WHERE (
                     (%(tsquery)s != '' AND search_tsv @@ to_tsquery('simple', %(tsquery)s))
-                    OR (
-                        %(long_query)s
-                        AND (search_text ILIKE %(contains_pattern)s OR %(raw_query)s <%% search_text)
-                    )
+                    OR (%(substring_query)s AND search_text ILIKE %(contains_pattern)s)
+                    OR (%(long_query)s AND %(raw_query)s <%% search_text)
                 )
                 AND (%(item_type)s IS NULL OR item_type = %(item_type)s)
                 ORDER BY

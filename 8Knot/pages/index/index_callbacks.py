@@ -40,6 +40,7 @@ from sqlalchemy.exc import SQLAlchemyError
 JOB_WAIT_TIMEOUT_S = 600
 
 GROUP_PREFIX = "group:"
+SEARCH_UNAVAILABLE_MESSAGE = "Search is temporarily unavailable. Please retry."
 
 # list of queries to be run (includes codebase page queries for heatmaps)
 # affiliation_query is last because its 3-way JOIN + GROUP BY is the slowest query;
@@ -275,16 +276,25 @@ def dynamic_multiselect_options(user_in: str, selections, current_options):
             # a projects.data update is what hides the "Searching..." indicator
             return _selection_options(selections, current_options), dash.no_update
 
+        public_index_failed = False
         try:
-            matched_options = search_options.query(search_query, item_type=prefix_type)
-        except search_options.SearchOptionsEmpty:
-            logging.warning("search_options is empty, re-syncing it from CollectOSS")
-            # re-read CollectOSS: this process's startup snapshot may be older than what another process synced
-            search_options.sync(augur.multiselect_startup)
-            matched_options = search_options.query(search_query, item_type=prefix_type)
+            try:
+                matched_options = search_options.query(search_query, item_type=prefix_type)
+            except search_options.SearchOptionsEmpty:
+                logging.warning("search_options is empty, re-syncing it from CollectOSS")
+                # re-read CollectOSS: this process's startup snapshot may be older than what another process synced
+                search_options.sync(augur.multiselect_startup)
+                matched_options = search_options.query(search_query, item_type=prefix_type)
+        except Exception:
+            logging.exception("Public search index unavailable")
+            matched_options = []
+            public_index_failed = True
 
         if prefix_type != "repo":
             matched_options += _matching_user_groups(search_query)
+
+        if public_index_failed and not matched_options:
+            return _selection_options(selections, current_options), SEARCH_UNAVAILABLE_MESSAGE
 
         # Format options with prefixes based on their type and deduplicate
         formatted_opts = []
@@ -312,7 +322,7 @@ def dynamic_multiselect_options(user_in: str, selections, current_options):
 
     except Exception:
         logging.exception("Error in dynamic_multiselect_options")
-        return _selection_options(selections or [], current_options), "Search is temporarily unavailable. Please retry."
+        return _selection_options(selections or [], current_options), SEARCH_UNAVAILABLE_MESSAGE
 
 
 # callback for repo selections to feed into visualization call backs
@@ -334,11 +344,9 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
 
     # names of augur groups or orgs
     names = [n for n in user_vals if SearchItem.from_id(n) == SearchItem.ORG]
-    group_names = [n[len(GROUP_PREFIX) :] for n in names if n.startswith(GROUP_PREFIX)]
-    org_names = [n for n in names if not n.startswith(GROUP_PREFIX)]
 
     try:
-        orgs = augur.resolve_org_repos(org_names)
+        orgs = augur.resolve_org_repos(names)
     except SQLAlchemyError:
         logging.exception("SEARCH-BUTTON: Could not resolve organizations from CollectOSS")
         return (
@@ -350,6 +358,9 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
     org_repos = [repo_id for members in orgs.values() for repo_id in members]
     logging.warning(f"ORG_REPOS: {org_repos}")
 
+    # a public organization named like a private group stays public
+    private_names = [n for n in names if n.startswith(GROUP_PREFIX) and n not in orgs]
+    group_names = [n[len(GROUP_PREFIX) :] for n in private_names]
     user_groups = {}
     if group_names and current_user.is_authenticated:
         logging.warning(f"LOGINBUTTON: USER LOGGED IN {current_user}")
@@ -369,7 +380,9 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
                 dash.no_update,
             )
 
-    if any(name not in orgs for name in org_names) or any(not user_groups.get(name) for name in group_names):
+    if any(n not in orgs for n in names if n not in private_names) or any(
+        not user_groups.get(name) for name in group_names
+    ):
         return (
             dbc.Alert(
                 "A selected organization or group is no longer available. Refresh your selection.", color="warning"

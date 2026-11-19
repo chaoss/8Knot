@@ -78,4 +78,4 @@ def repo_dropdown(repo_ids):
     for repo_id, label in zip(repo_ids, augur.repo_ids_to_git(repo_ids)):
         entry = {"value": str(repo_id), "label": label}
         data_array.append(entry)
-    return data_array, str(repo_ids[0])
+    return data_array, str(repo_ids[0]) if repo_ids else None

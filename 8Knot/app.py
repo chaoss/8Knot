@@ -53,6 +53,9 @@ try:
 except psycopg2.Error:
     logging.exception("SEARCH_OPTIONS: failed to sync to postgres-cache")
     raise
+except RuntimeError:
+    # an empty CollectOSS (e.g. a fresh instance) must not stop the app; the existing index is kept
+    logging.exception("SEARCH_OPTIONS: CollectOSS returned no options, serving the existing index")
 
 
 """IMPORT AFTER GLOBAL VARIABLES SET"""
