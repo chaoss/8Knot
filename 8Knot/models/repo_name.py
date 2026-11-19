@@ -14,4 +14,4 @@ def clean_repo_name(repo_name: str) -> tuple[str, str]:
     match = _REPO_URL_PREFIX.match(repo_name or "")
     if not match:
         return repo_name, "unknown"
-    return repo_name[match.end() :], match.group(1).lower()
+    return re.split(r"[?#]", repo_name[match.end() :], maxsplit=1)[0], match.group(1).lower()

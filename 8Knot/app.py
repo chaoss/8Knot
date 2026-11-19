@@ -47,12 +47,9 @@ except KeyError:
 except SQLAlchemyError:
     sys.exit(1)
 
-# grab list of projects and orgs from Augur database.
-augur.multiselect_startup()
-
 # Require a successful sync before serving: an older populated index would not trigger empty-table recovery.
 try:
-    search_options.sync(augur.get_multiselect_options())
+    search_options.sync(augur.multiselect_startup)
 except psycopg2.Error:
     logging.exception("SEARCH_OPTIONS: failed to sync to postgres-cache")
     raise

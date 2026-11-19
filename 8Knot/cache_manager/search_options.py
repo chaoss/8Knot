@@ -5,7 +5,7 @@ is synced from CollectOSS at startup and queried on every searchbar keystroke.
 
 import logging
 import re
-from typing import Optional
+from typing import Callable, Optional
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 from models import SearchItem, clean_repo_name
@@ -18,29 +18,32 @@ class SearchOptionsEmpty(Exception):
     """search_options has no rows: the startup sync failed or cache crash recovery truncated it."""
 
 
-def sync(options: list[dict[str, str]]) -> None:
+def sync(load_options: Callable[[], list[dict[str, str]]]) -> None:
     """
     Makes postgres-cache's search_options table match the searchbar options from CollectOSS:
     changed rows are upserted and rows no longer in CollectOSS are deleted.
     An empty list is treated as a failed read of CollectOSS, so the table is left unchanged.
 
     Args:
-        options: [{"label": str, "value": str}, ...] from the CollectOSS manager's get_multiselect_options().
+        load_options: Callable returning [{"label": str, "value": str}, ...] from the CollectOSS
+            manager (e.g. augur.multiselect_startup). Called while holding the sync lock, so the
+            CollectOSS read and the index publication are serialized against other processes.
     """
-    if not options:
-        logging.warning("search_options - NO OPTIONS FROM COLLECTOSS, INDEX LEFT UNCHANGED")
-        return
-
-    # keyed by value: ON CONFLICT can't update the same row twice in one statement
-    rows = {}
-    for opt in options:
-        item_type = SearchItem.from_id(opt["value"]).value
-        rows[opt["value"]] = (opt["value"], opt["label"], clean_repo_name(opt["label"])[0], item_type)
-
     with pg.connect(cache_cx_string) as cache_conn:
         with cache_conn.cursor() as cache_cur:
-            # every process that imports app.py syncs at startup; run them one at a time
+            # lock before reading CollectOSS, so an older read can't be published over a newer one
             cache_cur.execute("SELECT pg_advisory_xact_lock(hashtext('8knot_search_options_sync'))")
+            options = load_options()
+            if not options:
+                logging.warning("search_options - NO OPTIONS FROM COLLECTOSS, INDEX LEFT UNCHANGED")
+                return
+
+            # keyed by value: ON CONFLICT can't update the same row twice in one statement
+            rows = {}
+            for opt in options:
+                item_type = SearchItem.from_id(opt["value"]).value
+                rows[opt["value"]] = (opt["value"], opt["label"], clean_repo_name(opt["label"])[0], item_type)
+
             execute_values(
                 cur=cache_cur,
                 sql="""
@@ -108,6 +111,8 @@ def query(
     }
 
     with pg.connect(cache_cx_string) as cache_conn:
+        # one snapshot for the search and the empty-table check
+        cache_conn.set_session(isolation_level="REPEATABLE READ")
         with cache_conn.cursor() as cache_cur:
             cache_cur.execute("SET LOCAL pg_trgm.word_similarity_threshold = 0.35")
             cache_cur.execute(

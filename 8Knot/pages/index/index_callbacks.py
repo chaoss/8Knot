@@ -39,6 +39,8 @@ from sqlalchemy.exc import SQLAlchemyError
 # the data badge gives up waiting on the query jobs after this long
 JOB_WAIT_TIMEOUT_S = 600
 
+GROUP_PREFIX = "group:"
+
 # list of queries to be run (includes codebase page queries for heatmaps)
 # affiliation_query is last because its 3-way JOIN + GROUP BY is the slowest query;
 # keeping it at the end lets the faster queries finish without being blocked.
@@ -227,7 +229,8 @@ def _matching_user_groups(search_query: str) -> list:
         logging.error(f"MULTISELECT: Could not connect to users-cache. Error: {str(e)}")
         return []
     query = search_query.lower()
-    return [opt for opt in json.loads(cached) if query in opt["label"].lower()] if cached else []
+    matches = [opt for opt in json.loads(cached) if query in opt["label"].lower()] if cached else []
+    return [{**opt, "value": f"{GROUP_PREFIX}{opt['value']}"} for opt in matches]
 
 
 @callback(
@@ -270,15 +273,14 @@ def dynamic_multiselect_options(user_in: str, selections, current_options):
 
         if not search_query:
             # a projects.data update is what hides the "Searching..." indicator
-            return current_options, dash.no_update
+            return _selection_options(selections, current_options), dash.no_update
 
         try:
             matched_options = search_options.query(search_query, item_type=prefix_type)
         except search_options.SearchOptionsEmpty:
             logging.warning("search_options is empty, re-syncing it from CollectOSS")
             # re-read CollectOSS: this process's startup snapshot may be older than what another process synced
-            augur.multiselect_startup()
-            search_options.sync(augur.get_multiselect_options())
+            search_options.sync(augur.multiselect_startup)
             matched_options = search_options.query(search_query, item_type=prefix_type)
 
         if prefix_type != "repo":
@@ -332,9 +334,11 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
 
     # names of augur groups or orgs
     names = [n for n in user_vals if SearchItem.from_id(n) == SearchItem.ORG]
+    group_names = [n[len(GROUP_PREFIX) :] for n in names if n.startswith(GROUP_PREFIX)]
+    org_names = [n for n in names if not n.startswith(GROUP_PREFIX)]
 
     try:
-        orgs = augur.resolve_org_repos(names)
+        orgs = augur.resolve_org_repos(org_names)
     except SQLAlchemyError:
         logging.exception("SEARCH-BUTTON: Could not resolve organizations from CollectOSS")
         return (
@@ -346,7 +350,6 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
     org_repos = [repo_id for members in orgs.values() for repo_id in members]
     logging.warning(f"ORG_REPOS: {org_repos}")
 
-    group_names = [name for name in names if name not in orgs]
     user_groups = {}
     if group_names and current_user.is_authenticated:
         logging.warning(f"LOGINBUTTON: USER LOGGED IN {current_user}")
@@ -354,7 +357,9 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
         try:
             cached_groups = _users_cache().get(f"{current_user.get_id()}_groups")
             if cached_groups:
-                user_groups = json.loads(cached_groups)
+                user_groups = {
+                    name: [r for r in ids if r is not None] for name, ids in json.loads(cached_groups).items()
+                }
                 logging.warning(f"USERS Groups: {type(user_groups)}, {user_groups}")
         except redis.exceptions.RedisError:
             logging.error("Searchbar: couldn't connect to Redis for user group options.")
@@ -364,7 +369,7 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
                 dash.no_update,
             )
 
-    if any(name not in user_groups for name in group_names):
+    if any(name not in orgs for name in org_names) or any(not user_groups.get(name) for name in group_names):
         return (
             dbc.Alert(
                 "A selected organization or group is no longer available. Refresh your selection.", color="warning"

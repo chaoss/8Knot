@@ -218,7 +218,8 @@ class CollectOSSManager:
                             r.repo_git,
                             r.repo_id,
                             r.repo_name,
-                            rg.rg_name
+                            rg.rg_name,
+                            lower(rg.rg_name) AS rg_key
                         FROM
                             repo r
                         JOIN repo_groups rg
@@ -241,7 +242,12 @@ class CollectOSSManager:
 
         # create a list of dictionaries for the MultiSelect dropdown
         # Output is of the form: [{"label": org_name, "value": lower(org_name)}, ...]
-        multiselect_orgs = [{"label": v, "value": str.lower(v)} for v in list(df_search_bar["rg_name"].unique())]
+        multiselect_orgs = (
+            df_search_bar[["rg_name", "rg_key"]]
+            .drop_duplicates()
+            .rename(columns={"rg_name": "label", "rg_key": "value"})
+            .to_dict("records")
+        )
 
         # combine options for multiselect component and sort them by the length
         # of their label (shorter comes first because it sorts ascending by default.)
@@ -256,6 +262,7 @@ class CollectOSSManager:
         self.repo_id_to_repo_git = pd.Series(df_repo_git_id.repo_git.values, index=df_repo_git_id["repo_id"]).to_dict()
 
         logging.warning(f"MULTISELECT_FINISHED")
+        return self.multiselect_options
 
     def repo_git_to_id(self, git):
         """Getter method for dictionary
