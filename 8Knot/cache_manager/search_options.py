@@ -22,11 +22,13 @@ def sync(options: list[dict[str, str]]) -> None:
     """
     Makes postgres-cache's search_options table match the searchbar options from CollectOSS:
     changed rows are upserted and rows no longer in CollectOSS are deleted.
+    An empty list is treated as a failed read of CollectOSS, so the table is left unchanged.
 
     Args:
         options: [{"label": str, "value": str}, ...] from the CollectOSS manager's get_multiselect_options().
     """
     if not options:
+        logging.warning("search_options - NO OPTIONS FROM COLLECTOSS, INDEX LEFT UNCHANGED")
         return
 
     # keyed by value: ON CONFLICT can't update the same row twice in one statement

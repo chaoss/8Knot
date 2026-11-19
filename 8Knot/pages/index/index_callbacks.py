@@ -223,7 +223,7 @@ def _matching_user_groups(search_query: str) -> list:
         return []
     try:
         cached = _users_cache().get(f"{current_user.get_id()}_group_options")
-    except redis.exceptions.ConnectionError as e:
+    except redis.exceptions.RedisError as e:
         logging.error(f"MULTISELECT: Could not connect to users-cache. Error: {str(e)}")
         return []
     query = search_query.lower()
@@ -269,12 +269,15 @@ def dynamic_multiselect_options(user_in: str, selections, current_options):
             logging.info(f"Org prefix detected, searching for: '{search_query}'")
 
         if not search_query:
-            return dash.no_update
+            # a projects.data update is what hides the "Searching..." indicator
+            return current_options, dash.no_update
 
         try:
             matched_options = search_options.query(search_query, item_type=prefix_type)
         except search_options.SearchOptionsEmpty:
             logging.warning("search_options is empty, re-syncing it from CollectOSS")
+            # re-read CollectOSS: this process's startup snapshot may be older than what another process synced
+            augur.multiselect_startup()
             search_options.sync(augur.get_multiselect_options())
             matched_options = search_options.query(search_query, item_type=prefix_type)
 

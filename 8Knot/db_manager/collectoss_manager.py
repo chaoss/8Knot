@@ -248,14 +248,6 @@ class CollectOSSManager:
         self.multiselect_options = multiselect_repos + multiselect_orgs
         self.multiselect_options = sorted(self.multiselect_options, key=lambda i: i["label"])
 
-        # create a dictionary to map github orgs to their constituent repos.
-        # used when the user selects an org
-        # Output is of the form: {group_name: [rid1, rid2, ...], group_name: [...], ...}
-        df_lower_repo_names = df_search_bar.copy()
-        df_lower_repo_names["rg_name"] = df_lower_repo_names["rg_name"].apply(str.lower)
-        self.org_name_to_repos_dict = df_lower_repo_names.groupby("rg_name")["repo_id"].apply(list).to_dict()
-        self.org_names = list(self.org_name_to_repos_dict.keys())
-
         # create a dictionary that maps the github url to the repo_id in database
         df_repo_git_id = df_search_bar.copy()
         df_repo_git_id = df_repo_git_id[["repo_git", "repo_id"]]
@@ -278,17 +270,6 @@ class CollectOSSManager:
         """
         return self.repo_git_to_repo_id.get(git)
 
-    def repo_id_to_git(self, id):
-        """Getter method for dictionary
-        that converts a repo_id to the respective
-        git URL in the source db.
-        Args:
-            int: repo_id of the URL in the source DB.
-        Returns:
-            git (str): URL of repo
-        """
-        return self.repo_ids_to_git([id])[0]
-
     def repo_ids_to_git(self, repo_ids: list[int]) -> list[str]:
         """Return labels in selection order, loading missing metadata in one query.
 
@@ -308,17 +289,6 @@ class CollectOSSManager:
             except SQLAlchemyError:
                 logging.exception("COLLECTOSS: Could not load labels for selected repositories")
         return [self.repo_id_to_repo_git.get(repo_id) or f"Repository {repo_id}" for repo_id in ids]
-
-    def org_to_repos(self, org):
-        """Returns the list of repos in an org.
-
-        Args:
-            org (str): Github org name
-
-        Returns:
-            [int] | None: repo_ids or None
-        """
-        return self.org_name_to_repos_dict[org]
 
     def resolve_org_repos(self, names: list[str]) -> dict[str, list[int]]:
         """Resolve selected organizations from CollectOSS, not this process's startup snapshot.
@@ -343,17 +313,6 @@ class CollectOSSManager:
             for name, repo_id in conn.execute(query, {"names": names}):
                 org_repos.setdefault(name, []).append(repo_id)
         return org_repos
-
-    def is_org(self, org):
-        """Checks if org name in set of known org names
-
-        Args:
-            org (str): name of org
-
-        Returns:
-            bool: whether org name is in orgs
-        """
-        return org in self.org_names
 
     def initial_multiselect_option(self):
         """Getter method for the initial multiselect option.
