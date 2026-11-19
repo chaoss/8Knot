@@ -90,6 +90,10 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env
+    environment:
+      # The graphs are background callbacks, so they are built here rather than
+      # in app-server. Setting this on app-server has no effect.
+      - EIGHTKNOT_CONTRIBUTOR_LABEL=id  # id (default, anonymized) or login (GitHub username)
     restart: always
 
   worker-query:
