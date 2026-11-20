@@ -4,8 +4,8 @@
 
 - [OSCI - OpenShift Console](https://openshift-console.osci.io)
 
-- https://dev.eightknot.osci.io
-- https://eightknot.osci.io
+- https://dev.eightknot.io
+- https://eightknot.io
 
 ## Note
 
