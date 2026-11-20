@@ -7,7 +7,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.commits_query import commits_query as cmq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import cache_manager.cache_facade as cf
@@ -74,6 +74,7 @@ gc_commit_domains = VisualizationAIO(
         Input(f"date-picker-range-{PAGE}-{VIZ_ID}", "end_date"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def commit_domains_graph(repolist, num, start_date, end_date):
     # wait for data to asynchronously download and become available.

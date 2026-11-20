@@ -14,6 +14,9 @@ from components.nav_item import NavItemAIO
 # This will be imported from the main layout file
 search_bar = None
 
+# how often the data badge re-checks the query jobs
+JOB_POLL_INTERVAL_MS = 2000
+
 
 def create_main_content_area():
     """Create the main content area with loading components and page container."""
@@ -32,6 +35,7 @@ def create_main_content_area():
                     id="data-badge",
                     className="data-badge me-1",
                 ),
+                id="data-badge-loading",
                 type="cube",
             ),
             dash.page_container,
@@ -270,6 +274,7 @@ def create_app_stores():
     return [
         dcc.Store(id="repo-choices", storage_type="session", data=[]),
         dcc.Store(id="job-ids", storage_type="session", data=[]),
+        dcc.Interval(id="job-poll", interval=JOB_POLL_INTERVAL_MS, disabled=True),
         dcc.Store(id="user-group-loading-signal", data="", storage_type="memory"),
         # no-op output sink for the clientside scroll-to-anchor callback
         dcc.Store(id="anchor-scroll-dummy", data=None),

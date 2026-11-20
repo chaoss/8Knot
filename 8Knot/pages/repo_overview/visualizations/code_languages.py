@@ -9,7 +9,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.repo_languages_query import repo_languages_query as rlq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import datetime as dt
 import cache_manager.cache_facade as cf
@@ -84,6 +84,7 @@ def graph_title(view):
         Input(f"graph-view-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def code_languages_graph(repolist, view):
     # wait for data to asynchronously download and become available.

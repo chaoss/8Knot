@@ -9,7 +9,7 @@ import dash_bootstrap_components as dbc
 import dash
 from dash import callback, html, clientside_callback, ClientsideFunction
 from dash.dependencies import Input, Output, State, MATCH
-from app import augur
+from app import augur, celery_app
 from flask_login import current_user
 import cache_manager.cache_facade as cf
 from queries.issues_query import issues_query as iq
@@ -34,6 +34,10 @@ import redis
 import flask
 from .search_utils import fuzzy_search
 from .search_utils import clean_repo_name
+from .index_components import JOB_POLL_INTERVAL_MS
+
+# the data badge gives up waiting on the query jobs after this long
+JOB_WAIT_TIMEOUT_S = 600
 
 # list of queries to be run (includes codebase page queries for heatmaps)
 # affiliation_query is last because its 3-way JOIN + GROUP BY is the slowest query;
@@ -551,62 +555,41 @@ def show_repolist_alert(n_clicks, openness, repo_ids):
 
 
 @callback(
-    [Output("data-badge", "children"), Output("data-badge", "color")],
-    Input("job-ids", "data"),
-    background=True,
+    [
+        Output("data-badge", "children"),
+        Output("data-badge", "color"),
+        Output("data-badge-loading", "display"),
+        Output("job-poll", "disabled"),
+        Output("job-poll", "n_intervals"),
+    ],
+    [Input("job-ids", "data"), Input("job-poll", "n_intervals")],
 )
-def wait_queries(job_ids):
-    # TODO add docstring to function
+def wait_queries(job_ids, n_intervals):
+    """Sets the data badge from the status of the query jobs in job_ids.
 
-    jobs = [AsyncResult(j_id) for j_id in job_ids]
+    New job ids start the job-poll interval; each tick re-checks the jobs with a few Redis reads,
+    so no Celery worker is held while the queries run. Results are forgotten once reported.
+    """
+    new_jobs = dash.ctx.triggered_id != "job-poll"
+    # bind to our app: in the web process the default Celery app has no result backend
+    jobs = [AsyncResult(j_id, app=celery_app) for j_id in job_ids]
+    logging.warning([(j.name, j.status) for j in jobs])
 
-    # Add timeout protection to prevent infinite waiting
-    start_time = time.time()
-    max_wait_time = 600  # 10 minutes timeout
+    if all(j.successful() for j in jobs):
+        badge = "Data Ready", "#0F5880"
+    # wait for every job to finish before forgetting; a forgotten in-flight job never reports success
+    elif all(j.successful() or j.failed() for j in jobs):
+        badge = "Data Incomplete- Retry", "danger"
+    elif not new_jobs and n_intervals * JOB_POLL_INTERVAL_MS / 1000 >= JOB_WAIT_TIMEOUT_S:
+        logging.warning(f"wait_queries: Timeout after {JOB_WAIT_TIMEOUT_S}s - returning timeout status")
+        badge = "Timeout - Retry", "warning"
+    else:
+        # keep the spinner up and poll again; new jobs restart the timeout count
+        return dash.no_update, dash.no_update, "show", False, 0 if new_jobs else dash.no_update
 
-    # default 'result_expires' for celery config is 86400 seconds.
-    # so we don't have to check if the jobs exist. if this tasks
-    # is enqueued 24 hours after the query-worker tasks finish
-    # then we have a big problem. However, we should 'forget' all
-    # results before we exit.
-
-    while True:
-        # Check for timeout to prevent SoftTimeLimitExceeded
-        if time.time() - start_time > max_wait_time:
-            logging.warning(f"wait_queries: Timeout after {max_wait_time}s - returning timeout status")
-            jobs = [j.forget() for j in jobs]
-            return "Timeout - Retry", "warning"
-
-        logging.warning([(j.name, j.status) for j in jobs])
-
-        # jobs are either all ready
-        if all(j.successful() for j in jobs):
-            logging.warning([(j.name, j.status) for j in jobs])
-            jobs = [j.forget() for j in jobs]
-            return "Data Ready", "#0F5880"
-
-        # or one of them has failed
-        if any(j.failed() for j in jobs):
-            # if a job fails, we need to wait for the others to finish before
-            # we can 'forget' them. otherwise to-be-successful jobs will always
-            # be forgotten if one fails.
-
-            # tasks need to have either failed or succeeded before being forgotten.
-            while True:
-                num_succeeded = [j.successful() for j in jobs].count(True)
-                num_failed = [j.failed() for j in jobs].count(True)
-                num_total = num_failed + num_succeeded
-
-                if num_total == len(jobs):
-                    break
-
-                time.sleep(4.0)
-
-            jobs = [j.forget() for j in jobs]
-            return "Data Incomplete- Retry", "danger"
-
-        # pause to let something change
-        time.sleep(2.0)
+    for j in jobs:
+        j.forget()
+    return *badge, "auto", True, dash.no_update
 
 
 @callback(

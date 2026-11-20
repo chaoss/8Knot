@@ -8,7 +8,7 @@ import plotly.express as px
 from pages.utils.graph_utils import baby_blue
 from queries.commits_query import commits_query as cmq
 import cache_manager.cache_facade as cf
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 from components.visualization import VisualizationAIO
 
@@ -61,6 +61,7 @@ gc_contrib_activity_cycle = VisualizationAIO(
         Input(f"date-interval-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def contrib_activity_cycle_graph(repolist, interval):
     # wait for data to asynchronously download and become available.

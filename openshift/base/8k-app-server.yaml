@@ -5,7 +5,7 @@ metadata:
     alpha.image.policy.openshift.io/resolve-names: "*"
     app.openshift.io/route-disabled: "false"
     app.openshift.io/vcs-ref: main
-    app.openshift.io/vcs-uri: https://github.com/oss-aspen/8Knot.git
+    app.openshift.io/vcs-uri: https://github.com/chaoss/8Knot.git
     image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"eightknot-app:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"eightknot-app\")].image","pause":"false"}]'
   labels:
     name: eightknot-app-server

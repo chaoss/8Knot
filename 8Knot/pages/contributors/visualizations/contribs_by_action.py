@@ -8,7 +8,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
 from queries.contributors_query import contributors_query as ctq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import app
 import pages.utils.preprocessing_utils as preproc_utils
@@ -125,6 +125,7 @@ gc_contribs_by_action = VisualizationAIO(
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def contribs_by_action_graph(repolist, interval, action, bot_switch):
     # wait for data to asynchronously download and become available.

@@ -1,4 +1,4 @@
-from db_manager.augur_manager import AugurManager
+from db_manager.collectoss_manager import CollectOSSManager
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 
@@ -14,7 +14,7 @@ def get_bots_list():
                 """
 
     try:
-        dbm = AugurManager()
+        dbm = CollectOSSManager()
         engine = dbm.get_engine()
     except KeyError:
         # noack, data wasn't successfully set.

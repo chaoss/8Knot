@@ -4,7 +4,7 @@ apiVersion: image.openshift.io/v1
 metadata:
   annotations:
     app.openshift.io/vcs-ref: main
-    app.openshift.io/vcs-uri: https://github.com/oss-aspen/8Knot.git
+    app.openshift.io/vcs-uri: https://github.com/chaoss/8Knot.git
   name: eightknot-app
   labels:
     build: eightknot-app
@@ -17,7 +17,7 @@ kind: BuildConfig
 metadata:
   annotations:
     app.openshift.io/vcs-ref: main
-    app.openshift.io/vcs-uri: https://github.com/oss-aspen/8Knot.git
+    app.openshift.io/vcs-uri: https://github.com/chaoss/8Knot.git
   labels:
     build: eightknot-app
     app.openshift.io/runtime: python
@@ -33,7 +33,7 @@ spec:
     contextDir: /
     git:
       ref: main
-      uri: https://github.com/oss-aspen/8Knot.git
+      uri: https://github.com/chaoss/8Knot.git
     type: Git
   strategy:
     dockerStrategy:

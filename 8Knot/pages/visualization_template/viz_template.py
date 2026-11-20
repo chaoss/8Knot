@@ -8,7 +8,7 @@ from dateutil.relativedelta import *  # type: ignore
 from pages.utils.graph_utils import get_graph_time_values
 from queries.QUERY_NAME import QUERY_NAME as QUERY_INITIALS
 import cache_manager.cache_facade as cf
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 from components.visualization import VisualizationAIO
 import time
 import app  # pylint: disable=unused-import
@@ -155,6 +155,7 @@ gc_VISUALIZATION = VisualizationAIO(
         # add additional inputs here
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def NAME_OF_VISUALIZATION_graph(repolist, interval):
     # wait for data to asynchronously download and become available.

@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 import plotly.express as px
 from pages.utils.graph_utils import baby_blue
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 from queries.contributors_query import contributors_query as ctq
 import time
 import app
@@ -100,6 +100,7 @@ def graph_title(view):
         Input("bot-switch", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def repeat_drive_by_graph(repolist, contribs, view, bot_switch):
     # wait for data to asynchronously download and become available.

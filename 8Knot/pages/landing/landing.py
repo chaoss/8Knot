@@ -74,6 +74,24 @@ def create_landing_hero():
     )
 
 
+def create_landing_footer():
+    """Create the copyright footer that sits above the welcome-content divider."""
+    return html.P(
+        [
+            "© 2026 8Knot. Copyright © The Linux Foundation®. All rights reserved. The Linux Foundation has registered trademarks and uses trademarks.",
+            html.Br(),
+            "For more information, including terms of use, privacy policy, and trademark usage, please see our ",
+            html.A(["Policies"], href="https://www.linuxfoundation.org/legal/policies"),
+            " page. ",
+            html.A(["Trademark Usage"], href="https://www.linuxfoundation.org/trademark-usage"),
+            ". ",
+            html.A(["Privacy Policy"], href="https://www.linuxfoundation.org/privacy"),
+            ". ",
+        ],
+        className="version-display landing-footer",
+    )
+
+
 def create_welcome_content():
     """Create the expandable welcome content section with DBC tabs in cards."""
     return html.Div(
@@ -171,6 +189,7 @@ layout = html.Div(
     className="landing-page",
     children=[
         create_landing_hero(),
+        create_landing_footer(),
         create_welcome_content(),
         # Store to track welcome content state
         dcc.Store(id="welcome-content-state", data={"expanded": False}),

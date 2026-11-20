@@ -9,7 +9,7 @@ from dateutil.relativedelta import *  # type: ignore
 import plotly.express as px
 from pages.utils.graph_utils import get_graph_time_values, baby_blue
 from queries.issues_query import issues_query as iq
-from pages.utils.job_utils import nodata_graph
+from pages.utils.job_utils import nodata_graph, POLL_INTERVAL_MS
 import time
 import cache_manager.cache_facade as cf
 from components.visualization import VisualizationAIO
@@ -145,6 +145,7 @@ gc_issue_staleness = VisualizationAIO(
         Input(f"bug-filter-{PAGE}-{VIZ_ID}", "value"),
     ],
     background=True,
+    interval=POLL_INTERVAL_MS,
 )
 def new_staling_issues_graph(repolist, interval, staling_interval, stale_interval, bug_filter):
     # conditional for the intervals to be valid options
