@@ -218,7 +218,8 @@ class CollectOSSManager:
                             r.repo_git,
                             r.repo_id,
                             r.repo_name,
-                            rg.rg_name
+                            rg.rg_name,
+                            lower(rg.rg_name) AS rg_key
                         FROM
                             repo r
                         JOIN repo_groups rg
@@ -241,20 +242,17 @@ class CollectOSSManager:
 
         # create a list of dictionaries for the MultiSelect dropdown
         # Output is of the form: [{"label": org_name, "value": lower(org_name)}, ...]
-        multiselect_orgs = [{"label": v, "value": str.lower(v)} for v in list(df_search_bar["rg_name"].unique())]
+        multiselect_orgs = (
+            df_search_bar[["rg_name", "rg_key"]]
+            .drop_duplicates()
+            .rename(columns={"rg_name": "label", "rg_key": "value"})
+            .to_dict("records")
+        )
 
         # combine options for multiselect component and sort them by the length
         # of their label (shorter comes first because it sorts ascending by default.)
         self.multiselect_options = multiselect_repos + multiselect_orgs
         self.multiselect_options = sorted(self.multiselect_options, key=lambda i: i["label"])
-
-        # create a dictionary to map github orgs to their constituent repos.
-        # used when the user selects an org
-        # Output is of the form: {group_name: [rid1, rid2, ...], group_name: [...], ...}
-        df_lower_repo_names = df_search_bar.copy()
-        df_lower_repo_names["rg_name"] = df_lower_repo_names["rg_name"].apply(str.lower)
-        self.org_name_to_repos_dict = df_lower_repo_names.groupby("rg_name")["repo_id"].apply(list).to_dict()
-        self.org_names = list(self.org_name_to_repos_dict.keys())
 
         # create a dictionary that maps the github url to the repo_id in database
         df_repo_git_id = df_search_bar.copy()
@@ -264,6 +262,7 @@ class CollectOSSManager:
         self.repo_id_to_repo_git = pd.Series(df_repo_git_id.repo_git.values, index=df_repo_git_id["repo_id"]).to_dict()
 
         logging.warning(f"MULTISELECT_FINISHED")
+        return self.multiselect_options
 
     def repo_git_to_id(self, git):
         """Getter method for dictionary
@@ -278,38 +277,49 @@ class CollectOSSManager:
         """
         return self.repo_git_to_repo_id.get(git)
 
-    def repo_id_to_git(self, id):
-        """Getter method for dictionary
-        that converts a repo_id to the respective
-        git URL in the source db.
-        Args:
-            int: repo_id of the URL in the source DB.
-        Returns:
-            git (str): URL of repo
+    def repo_ids_to_git(self, repo_ids: list[int]) -> list[str]:
+        """Return labels in selection order, loading missing metadata in one query.
+
+        Each web/worker process can receive IDs discovered after its startup.
+        Keep ID labels usable if repositories have since been removed or CollectOSS
+        is temporarily unavailable; successful lookups populate the local map.
         """
-        return self.repo_id_to_repo_git.get(id)
+        ids = [int(repo_id) for repo_id in repo_ids]
+        missing = list(set(ids) - self.repo_id_to_repo_git.keys())
+        if missing:
+            try:
+                with self.engine.connect() as conn:
+                    rows = conn.execute(
+                        salc.text("SELECT repo_id, repo_git FROM repo WHERE repo_id = ANY(:ids)"), {"ids": missing}
+                    )
+                    self.repo_id_to_repo_git.update({repo_id: url for repo_id, url in rows if url})
+            except SQLAlchemyError:
+                logging.exception("COLLECTOSS: Could not load labels for selected repositories")
+        return [self.repo_id_to_repo_git.get(repo_id) or f"Repository {repo_id}" for repo_id in ids]
 
-    def org_to_repos(self, org):
-        """Returns the list of repos in an org.
+    def resolve_org_repos(self, names: list[str]) -> dict[str, list[int]]:
+        """Resolve selected organizations from CollectOSS, not this process's startup snapshot.
 
-        Args:
-            org (str): Github org name
-
-        Returns:
-            [int] | None: repo_ids or None
+        Another process may have published newer search options. Query once when
+        the user confirms a selection so both new orgs and changed memberships work.
+        Names absent from CollectOSS are omitted; the caller can check private groups.
         """
-        return self.org_name_to_repos_dict[org]
+        if not names:
+            return {}
 
-    def is_org(self, org):
-        """Checks if org name in set of known org names
-
-        Args:
-            org (str): name of org
-
-        Returns:
-            bool: whether org name is in orgs
-        """
-        return org in self.org_names
+        query = salc.text(
+            """
+            SELECT lower(rg.rg_name), r.repo_id
+            FROM repo r
+            JOIN repo_groups rg ON rg.repo_group_id = r.repo_group_id
+            WHERE lower(rg.rg_name) = ANY(:names)
+            """
+        )
+        org_repos = {}
+        with self.engine.connect() as conn:
+            for name, repo_id in conn.execute(query, {"names": names}):
+                org_repos.setdefault(name, []).append(repo_id)
+        return org_repos
 
     def initial_multiselect_option(self):
         """Getter method for the initial multiselect option.

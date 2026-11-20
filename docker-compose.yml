@@ -68,10 +68,6 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env
-    environment:
-      - EIGHTKNOT_SEARCHBAR_OPTS_SORT=shortest  # Try different options: shortest, longest, alphabetical
-      - EIGHTKNOT_SEARCHBAR_OPTS_MAX_RESULTS=20000  # Maximum number of results to return (org and repo)
-      - EIGHTKNOT_SEARCHBAR_OPTS_MAX_REPOS=19500  # Max number of repos
     restart: always
 
   worker-callback:

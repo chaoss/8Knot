@@ -138,6 +138,7 @@ def parse_repolist(repo_list, prepend_to_url=""):
         # check if the translation worked.
         if not repo_id_translated:
             logging.error(f"PARSE_REPOLIST: {repo_url} NOT TRANSLATABLE TO REPO_ID")
+            continue
 
         ids.append(repo_id_translated)
 
