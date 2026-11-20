@@ -46,7 +46,7 @@ patches:
     patch: |-
       - op: add
         path: /spec/rules/0/host
-        value: eightknot.osci.io
+        value: eightknot.io
   - target:
       kind: Namespace
       name: sandbox
@@ -66,7 +66,7 @@ patches:
     patch: |-
       - op: add
         path: /spec/host
-        value: eightknot.osci.io
+        value: eightknot.io
   # TODO: fix init containers using image stream
   - target:
       kind: Deployment
