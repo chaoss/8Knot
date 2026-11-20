@@ -18,6 +18,15 @@ If you are interested in making a code contribution and would like to learn more
 14. Make changes to the pull request if the reviewing maintainer recommends them.
 15. Celebrate your success after your pull request is merged!
 
+## Unit tests
+
+The assignment-counting tests run without a database, Redis, or the Dash server:
+
+```bash
+python -m pip install "pandas~=2.3.0"
+PYTHONPATH=8Knot python -m unittest discover -s tests -p '*_test.py' -v
+```
+
 ## Steps to create a new visualization
 
 1. Make a copy of the [visualization template](https://github.com/chaoss/8Knot/blob/dev/8Knot/pages/visualization_template/viz_template.py) for the visualization and put it in the folder of the [page](https://github.com/chaoss/8Knot/tree/dev/8Knot/pages) you want to add it to
