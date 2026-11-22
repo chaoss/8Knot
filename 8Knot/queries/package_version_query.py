@@ -1,6 +1,6 @@
 import logging
 import cache_manager.cache_facade as cf
-from app import celery_app
+from _celery import celery_app
 
 
 @celery_app.task(
