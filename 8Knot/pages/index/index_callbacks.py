@@ -12,6 +12,7 @@ from dash.dependencies import Input, Output, State, MATCH
 from app import augur, celery_app
 from flask_login import current_user
 import cache_manager.cache_facade as cf
+import query_metrics
 from queries.issues_query import issues_query as iq
 from queries.commits_query import commits_query as cq
 from queries.contributors_query import contributors_query as cnq
@@ -457,6 +458,19 @@ def multiselect_values_to_repo_ids(search_button_clicks, user_vals):
     # names of augur groups or orgs
     names = [n for n in user_vals if SearchItem.from_id(n) == SearchItem.ORG]
 
+    # record searched repos and orgs for query metrics; skipped when the
+    # callback fires on page load with the default selection, so that the
+    # default doesn't sit at the top of the counts forever. An org search
+    # counts only the org, never the repos it expands to.
+    if search_button_clicks:
+        for r in repos:
+            git_url = augur.repo_id_to_git(r)
+            if git_url is not None:
+                query_metrics.search("repo", git_url)
+        for o in names:
+            if augur.is_org(o):
+                query_metrics.search("org", o)
+
     org_repos = [augur.org_to_repos(o) for o in names if augur.is_org(o)]
     # flatten list repo_ids in orgs to 1D
     org_repos = [v for l in org_repos for v in l]
@@ -618,8 +632,9 @@ def run_queries(repos):
             logging.warning(f"{f.__name__} - NO DISPATCH - ALL REPOS IN CACHE")
             continue
 
-        # add job to queue
-        j = f.apply_async(args=[not_ready], queue="data")
+        # add job to queue; km_sent stamps the dispatch for the
+        # queue_wait/e2e metrics recorded in _celery.py
+        j = f.apply_async(args=[not_ready], queue="data", headers={"km_sent": time.time()})
 
         # add job promise to local promise list
         jobs.append(j)

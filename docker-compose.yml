@@ -150,6 +150,21 @@ services:
       - .env
     restart: always
 
+  # query timing and search counts, read by Grafana (docs/query-metrics.md)
+  redis-metrics:
+    image: docker.io/library/redis:8
+    command:
+      - /bin/sh
+      - -c
+      - exec docker-entrypoint.sh redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}" --maxmemory 256mb --maxmemory-policy noeviction --save 300 1
+    env_file:
+      - .env
+    volumes:
+      - redis-metrics:/data
+    restart: always
+    profiles:
+      - metrics
+
   postgres-cache:
     image: docker.io/library/postgres:16
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
@@ -171,6 +186,8 @@ services:
 
 volumes:
   postgres-cache:
+
+  redis-metrics:
 
   # flower:
   #   build:
