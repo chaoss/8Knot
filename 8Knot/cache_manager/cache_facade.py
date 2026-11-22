@@ -4,6 +4,7 @@ bulk cache writes use psycopg2.
 """
 
 import logging
+from contextlib import closing
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 from psycopg2 import sql as pg_sql
@@ -26,10 +27,11 @@ def cache_query_results(
     vars: tuple[tuple],
     target_table: str,
     bookkeeping_data: tuple[dict],
+    cache_conn,
     server_pagination=2000,
     client_pagination=2000,
 ) -> None:
-    """Runs {query} against CollectOSS with variables {vars}.
+    """Stream results and bookkeeping into the caller's locked cache transaction.
     Retrieves results from db with paginations {server_pagination} and {client_pagination}.
 
     Args:
@@ -37,6 +39,7 @@ def cache_query_results(
         vars (tuple(tuple)): _description_
         target_table (str): _description_
         bookkeeping_data (tuple(dict)): _description_
+        cache_conn: Cache connection; caller owns commit/rollback and collection lock.
         server_pagination (int, optional): _description_. Defaults to 2000.
         client_pagination (int, optional): _description_. Defaults to 2000.
     """
@@ -46,82 +49,53 @@ def cache_query_results(
         # A server-side cursor keeps large results out of worker memory.
         with collectoss_conn.execution_options(yield_per=server_pagination).exec_driver_sql(query, vars) as result:
             logging.warning(f"{target_table} -- CQR STARTING TRANSACTION")
-            # connect to cache
-            with pg.connect(cache_cx_string) as cache_conn:
-                logging.warning(f"{target_table} -- CQR COMPOSING SQL")
-                # compose SQL w/ table name
-                # ref: https://www.psycopg.org/docs/sql.html
-                composed_query = pg_sql.SQL(
-                    "INSERT INTO {tbl_name} VALUES %s ON CONFLICT DO NOTHING".format(tbl_name=target_table)
-                ).as_string(cache_conn)
+            composed_query = (
+                pg_sql.SQL("INSERT INTO {} VALUES %s").format(pg_sql.Identifier(target_table)).as_string(cache_conn)
+            )
 
-                # iterate through pages of rows from server.
-                logging.warning(f"{target_table} -- CQR FETCHING AND STORING ROWS")
-                while rows := result.fetchmany(client_pagination):
-                    # write available rows to cache.
-                    with cache_conn.cursor() as cache_cur:
-                        execute_values(
-                            cur=cache_cur,
-                            sql=composed_query,
-                            argslist=[tuple(row) for row in rows],
-                            page_size=client_pagination,
-                        )
-
-                # after all data has successfully been written to cache from the primary db,
-                # insert record of existence for each (cache_func, repo_id) pair.
-                logging.warning(f"{target_table} -- CQR UPDATING BOOKKEEPING")
+            logging.warning(f"{target_table} -- CQR FETCHING AND STORING ROWS")
+            while rows := result.fetchmany(client_pagination):
                 with cache_conn.cursor() as cache_cur:
                     execute_values(
                         cur=cache_cur,
-                        sql="""
-                        INSERT INTO cache_bookkeeping (cache_func, repo_id)
-                        VALUES %s
-                        """,
-                        template="(%(cache_func)s, %(repo_id)s)",
-                        argslist=bookkeeping_data,
+                        sql=composed_query,
+                        argslist=[tuple(row) for row in rows],
+                        page_size=client_pagination,
                     )
 
-                logging.warning(f"{target_table} -- CQR COMMITTING TRANSACTION")
-                cache_conn.commit()
+            # Empty successful results are cached too; failed streams never reach this.
+            logging.warning(f"{target_table} -- CQR UPDATING BOOKKEEPING")
+            with cache_conn.cursor() as cache_cur:
+                execute_values(
+                    cur=cache_cur,
+                    sql="INSERT INTO cache_bookkeeping (cache_func, repo_id) VALUES %s",
+                    template="(%(cache_func)s, %(repo_id)s)",
+                    argslist=bookkeeping_data,
+                )
 
-        # don't need to commit on primary db
-        logging.warning(f"{target_table} -- CQR SUCCESS")
+
+def _get_uncached(cache_conn, func_name, repolist):
+    """Read completed entries on an existing transaction (not a collection claim)."""
+    with cache_conn.cursor() as cache_cur:
+        cache_cur.execute(
+            "SELECT repo_id FROM cache_bookkeeping WHERE cache_func = %s AND repo_id = ANY(%s)",
+            (func_name, list(repolist)),
+        )
+        already_cached = {row[0] for row in cache_cur.fetchall()}
+    return sorted(set(repolist) - already_cached)
 
 
-def get_uncached(func_name: str, repolist: list[int]) -> list[int]:  # or None
+def get_uncached(func_name: str, repolist: list[int]) -> list[int]:
     """
     Checks bookkeeping data to find, for a given querying function, which
     repos' data are noted as present in cache vs. those that arent.
 
     Returns a list of repos that AREN'T resident in cache.
     """
-    with pg.connect(cache_cx_string) as cache_conn:
-        with cache_conn.cursor() as cache_cur:
-            composed_query = pg_sql.SQL(
-                """
-                SELECT cb.repo_id
-                FROM cache_bookkeeping cb
-                WHERE cb.cache_func = '{cache_func_name}' AND cb.repo_id in %s
-                """.format(
-                    cache_func_name=func_name
-                )
-            ).as_string(cache_conn)
-
-            # exec query
-            cache_cur.execute(query=composed_query, vars=(tuple(repolist),))
-
-            # get list of cached repos
-            already_cached: list[tuple] = cache_cur.fetchall()
-
-            # process list of single-value tuples to get list of values.
-            # looks like: [(val1,), (val2,), ...]
-            already_cached: set[int] = set([v[0] for v in already_cached])
-
-            # repos that are already cached will be removed from repolist set,
-            # leaving uncached remaining.
-            not_cached: list[int] = list(set(repolist) - already_cached)
-
-            return not_cached
+    if not repolist:
+        return []
+    with closing(pg.connect(cache_cx_string)) as cache_conn, cache_conn:
+        return _get_uncached(cache_conn, func_name, repolist)
 
 
 def caching_wrapper(func_name: str, query: str, repolist: list[int], n_repolist_uses=1) -> None:
@@ -141,28 +115,31 @@ def caching_wrapper(func_name: str, query: str, repolist: list[int], n_repolist_
     Returns:
         _type_: None
     """
+    if not repolist:
+        return 0
     try:
-        # STEP 1: Which repos need to be queried for?
-        #           some might already be in cache.
-        uncached_repos: list[int] | None = get_uncached(func_name=func_name, repolist=repolist)
-        if not uncached_repos:
-            logging.warning(f"{func_name} COLLECTION - ALL REQUESTED REPOS IN CACHE")
-            return 0
-        else:
+        with closing(pg.connect(cache_cx_string)) as cache_conn, cache_conn:
+            # Claim (query, repo) keys in canonical order so overlapping tasks
+            # cannot deadlock. Keep claims through recheck + collection + commit.
+            repo_claims = sorted(set(repolist))
+            with cache_conn.cursor() as cur:
+                cur.execute("SET LOCAL lock_timeout = '5s'")
+                for repo_id in repo_claims:
+                    cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s), %s)", (func_name, repo_id))
+            uncached_repos = _get_uncached(cache_conn, func_name, repolist)
+            if not uncached_repos:
+                logging.warning(f"{func_name} COLLECTION - ALL REQUESTED REPOS IN CACHE")
+                return 0
             logging.warning(f"{func_name} COLLECTION - CACHING {len(uncached_repos)} NEW REPOS")
-
-            # inject the repolist multiple times because the SQL uses it more
-            # than once and the wildcard %s are ordered.
-            uncached_repos: tuple[tuple] = tuple([tuple(uncached_repos) for _ in range(n_repolist_uses)])
-
-        # STEP 2: Query for those repos
-        logging.warning(f"{func_name} COLLECTION - EXECUTING CACHING QUERY")
-        cache_query_results(
-            query=query,
-            vars=uncached_repos,
-            target_table=func_name,
-            bookkeeping_data=tuple({"cache_func": func_name, "repo_id": r} for r in repolist),
-        )
+            cache_query_results(
+                query=query,
+                vars=tuple(tuple(uncached_repos) for _ in range(n_repolist_uses)),
+                target_table=func_name,
+                bookkeeping_data=tuple({"cache_func": func_name, "repo_id": r} for r in uncached_repos),
+                cache_conn=cache_conn,
+            )
+            logging.warning(f"{func_name} -- CQR COMMITTING TRANSACTION")
+        logging.warning(f"{func_name} -- CQR SUCCESS")
     except Exception as error:
         logging.exception(f"{func_name}_POSTGRES ERROR")
 
