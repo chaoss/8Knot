@@ -1,5 +1,5 @@
 import logging
-from app import celery_app
+from _celery import celery_app
 import cache_manager.cache_facade as cf
 
 
