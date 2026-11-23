@@ -13,7 +13,6 @@ from .index_components import (
     create_sidebar,
     create_main_layout,
     create_app_stores,
-    create_storage_quota_script,
     initialize_components,
 )
 
@@ -113,9 +112,8 @@ initialize_components(search_bar)
 layout = html.Div(
     dbc.Container(
         [
-            # Application stores and scripts
+            # Application stores
             *create_app_stores(),
-            create_storage_quota_script(),
             # Login banner overlay
             login_banner if login_banner else html.Div(),
             # Main application structure
