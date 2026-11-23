@@ -48,7 +48,8 @@ it, like background callbacks and user_groups_query, are ignored."""
 
 @task_prerun.connect
 def _record_queue_wait(task=None, **kwargs):
-    if (km_sent := getattr(task.request, "km_sent", None)) is not None and task.request.retries == 0:
+    km_sent = getattr(task.request, "km_sent", None)
+    if km_sent is not None and task.request.retries == 0:
         query_metrics.timing("queue_wait", task.name.rsplit(".", 1)[-1], time.time() - km_sent)
 
 

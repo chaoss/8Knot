@@ -69,13 +69,7 @@ def _events():
 def _writer(events: queue.Queue) -> None:
     """Drains the queue into the metrics Redis. Runs forever; a failed
     batch is dropped and the next one is tried 5 seconds later."""
-    client = redis.StrictRedis(
-        host=os.getenv("METRICS_REDIS_HOST"),
-        port=int(os.getenv("METRICS_REDIS_PORT", "6379")),
-        password=os.getenv("REDIS_PASSWORD", ""),
-        socket_connect_timeout=1,
-        socket_timeout=1,
-    )
+    client = None
     last_log = 0.0
     while True:
         batch = [events.get()]
@@ -85,6 +79,17 @@ def _writer(events: queue.Queue) -> None:
             except queue.Empty:
                 break
         try:
+            # created here, not above the loop, so that a bad host/port
+            # config is dropped-and-warned like any other failure instead
+            # of killing the writer thread
+            if client is None:
+                client = redis.StrictRedis(
+                    host=os.getenv("METRICS_REDIS_HOST"),
+                    port=int(os.getenv("METRICS_REDIS_PORT", "6379")),
+                    password=os.getenv("REDIS_PASSWORD", ""),
+                    socket_connect_timeout=1,
+                    socket_timeout=1,
+                )
             pipe = client.pipeline(transaction=False)
             kinds = set()
             for event in batch:
