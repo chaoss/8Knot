@@ -1,0 +1,17 @@
+apiVersion: 1
+datasources:
+  - name: redis-metrics
+    uid: redis-metrics
+    type: redis-datasource
+    access: proxy
+    url: redis://redis-metrics:6379
+    isDefault: true
+    editable: false
+    jsonData:
+      client: standalone
+      poolSize: 5
+      timeout: 10
+      pingInterval: 0
+      pipelineWindow: 0
+    secureJsonData:
+      password: $REDIS_PASSWORD
