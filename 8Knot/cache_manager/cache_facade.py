@@ -4,12 +4,14 @@ bulk cache writes use psycopg2.
 """
 
 import logging
+import time
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 from psycopg2 import sql as pg_sql
 import pandas as pd
 from sqlalchemy.exc import DBAPIError
 from db_manager.collectoss_manager import CollectOSSManager
+import query_metrics
 
 # requires relative import syntax "import .cx_common" because
 # other files importing cache_facade need to know how to resolve
@@ -41,10 +43,15 @@ def cache_query_results(
         client_pagination (int, optional): _description_. Defaults to 2000.
     """
     logging.warning(f"{target_table} -- CQR CACHE_QUERY_RESULTS BEGIN")
+    # per-stage timers, recorded after a successful run (query_metrics)
+    augur_sql_seconds = 0.0
+    cache_write_seconds = 0.0
     with collectoss.get_engine().connect() as collectoss_conn:
         logging.warning(f"{target_table} -- CQR EXECUTING QUERY")
         # A server-side cursor keeps large results out of worker memory.
+        query_start = time.perf_counter()
         with collectoss_conn.execution_options(yield_per=server_pagination).exec_driver_sql(query, vars) as result:
+            augur_sql_seconds += time.perf_counter() - query_start
             logging.warning(f"{target_table} -- CQR STARTING TRANSACTION")
             # connect to cache
             with pg.connect(cache_cx_string) as cache_conn:
@@ -57,8 +64,14 @@ def cache_query_results(
 
                 # iterate through pages of rows from server.
                 logging.warning(f"{target_table} -- CQR FETCHING AND STORING ROWS")
-                while rows := result.fetchmany(client_pagination):
+                while True:
+                    fetch_start = time.perf_counter()
+                    rows = result.fetchmany(client_pagination)
+                    augur_sql_seconds += time.perf_counter() - fetch_start
+                    if not rows:
+                        break
                     # write available rows to cache.
+                    write_start = time.perf_counter()
                     with cache_conn.cursor() as cache_cur:
                         execute_values(
                             cur=cache_cur,
@@ -66,10 +79,12 @@ def cache_query_results(
                             argslist=[tuple(row) for row in rows],
                             page_size=client_pagination,
                         )
+                    cache_write_seconds += time.perf_counter() - write_start
 
                 # after all data has successfully been written to cache from the primary db,
                 # insert record of existence for each (cache_func, repo_id) pair.
                 logging.warning(f"{target_table} -- CQR UPDATING BOOKKEEPING")
+                write_start = time.perf_counter()
                 with cache_conn.cursor() as cache_cur:
                     execute_values(
                         cur=cache_cur,
@@ -80,9 +95,15 @@ def cache_query_results(
                         template="(%(cache_func)s, %(repo_id)s)",
                         argslist=bookkeeping_data,
                     )
+                cache_write_seconds += time.perf_counter() - write_start
 
                 logging.warning(f"{target_table} -- CQR COMMITTING TRANSACTION")
+                write_start = time.perf_counter()
                 cache_conn.commit()
+                cache_write_seconds += time.perf_counter() - write_start
+
+                query_metrics.timing("augur_sql", target_table, augur_sql_seconds)
+                query_metrics.timing("cache_write", target_table, cache_write_seconds)
 
         # don't need to commit on primary db
         logging.warning(f"{target_table} -- CQR SUCCESS")
@@ -186,6 +207,7 @@ def retrieve_from_cache(
     """
 
     # GET ALL DATA FROM POSTGRES CACHE
+    start = time.perf_counter()
     df = None
     with pg.connect(cache_cx_string) as cache_conn:
         with cache_conn.cursor() as cache_cur:
@@ -207,4 +229,5 @@ def retrieve_from_cache(
                 columns=[desc[0] for desc in cache_cur.description],
             )
             logging.warning(f"{tablename} - DATA LOADED - {df.shape} rows,cols")
+            query_metrics.timing("cache_read", tablename, time.perf_counter() - start)
             return df

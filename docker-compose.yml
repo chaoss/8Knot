@@ -150,6 +150,21 @@ services:
       - .env
     restart: always
 
+  # query timing and search counts, read by Grafana (docs/query-metrics.md)
+  redis-metrics:
+    image: docker.io/library/redis:8
+    command:
+      - /bin/sh
+      - -c
+      - exec docker-entrypoint.sh redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}" --maxmemory 256mb --maxmemory-policy noeviction --save 300 1
+    env_file:
+      - .env
+    volumes:
+      - redis-metrics:/data
+    restart: always
+    profiles:
+      - metrics
+
   postgres-cache:
     image: docker.io/library/postgres:16
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
@@ -169,8 +184,35 @@ services:
       timeout: 5s
       retries: 5
 
+  # query timing and search dashboard (docs/query-metrics.md)
+  grafana:
+    image: docker.io/grafana/grafana:13.3.1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - ': "$${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD variable is not set}" && exec /run.sh'
+    depends_on:
+      redis-metrics:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - GF_PLUGINS_PREINSTALL=redis-datasource@2.2.0
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: always
+    profiles:
+      - metrics
+
 volumes:
   postgres-cache:
+
+  redis-metrics:
 
   # flower:
   #   build:

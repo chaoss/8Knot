@@ -1,0 +1,1531 @@
+{
+  "uid": "8knot-query-metrics",
+  "title": "8Knot query metrics",
+  "tags": [
+    "8knot",
+    "query-metrics"
+  ],
+  "timezone": "browser",
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Top searched repos and orgs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "bargauge",
+      "title": "Top 15 repos (last 30 days)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "command",
+          "command": "zrange",
+          "keyName": "km:search:repo:30d",
+          "min": "-15",
+          "max": "-1",
+          "zrangeQuery": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Last *",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "Top 15 repos (all time)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "command",
+          "command": "zrange",
+          "keyName": "km:search:repo:all",
+          "min": "-15",
+          "max": "-1",
+          "zrangeQuery": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Last *",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Top 15 orgs (last 30 days)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "command",
+          "command": "zrange",
+          "keyName": "km:search:org:30d",
+          "min": "-15",
+          "max": "-1",
+          "zrangeQuery": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Last *",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Top 15 orgs (all time)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "command",
+          "command": "zrange",
+          "keyName": "km:search:org:all",
+          "min": "-15",
+          "max": "-1",
+          "zrangeQuery": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Last *",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Query latency by stage",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "End-to-end (e2e) \u2014 latency trend (5m avg & max)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "avg",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=e2e",
+          "aggregation": "avg",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        },
+        {
+          "refId": "max",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=e2e",
+          "aggregation": "max",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (avg)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (max)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "End-to-end (e2e) \u2014 p50 / p95 / max / count",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 13,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=e2e",
+          "aggregation": "max",
+          "bucket": 1,
+          "legend": "query"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "median",
+              "p95",
+              "max",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "Query",
+              "Median": "p50",
+              "95th %": "p95",
+              "Max": "Max",
+              "Count": "Count"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Queue wait (queue_wait) \u2014 latency trend (5m avg & max)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "avg",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=queue_wait",
+          "aggregation": "avg",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        },
+        {
+          "refId": "max",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=queue_wait",
+          "aggregation": "max",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (avg)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (max)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Queue wait (queue_wait) \u2014 p50 / p95 / max / count",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 13,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=queue_wait",
+          "aggregation": "max",
+          "bucket": 1,
+          "legend": "query"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "median",
+              "p95",
+              "max",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "Query",
+              "Median": "p50",
+              "95th %": "p95",
+              "Max": "Max",
+              "Count": "Count"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Source SQL (augur_sql) \u2014 latency trend (5m avg & max)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 34
+      },
+      "targets": [
+        {
+          "refId": "avg",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=augur_sql",
+          "aggregation": "avg",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        },
+        {
+          "refId": "max",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=augur_sql",
+          "aggregation": "max",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (avg)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (max)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Source SQL (augur_sql) \u2014 p50 / p95 / max / count",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 13,
+        "y": 34
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=augur_sql",
+          "aggregation": "max",
+          "bucket": 1,
+          "legend": "query"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "median",
+              "p95",
+              "max",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "Query",
+              "Median": "p50",
+              "95th %": "p95",
+              "Max": "Max",
+              "Count": "Count"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Cache write (cache_write) \u2014 latency trend (5m avg & max)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 42
+      },
+      "targets": [
+        {
+          "refId": "avg",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_write",
+          "aggregation": "avg",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        },
+        {
+          "refId": "max",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_write",
+          "aggregation": "max",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (avg)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (max)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Cache write (cache_write) \u2014 p50 / p95 / max / count",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 13,
+        "y": 42
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_write",
+          "aggregation": "max",
+          "bucket": 1,
+          "legend": "query"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "median",
+              "p95",
+              "max",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "Query",
+              "Median": "p50",
+              "95th %": "p95",
+              "Max": "Max",
+              "Count": "Count"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Cache read (cache_read) \u2014 latency trend (5m avg & max)",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 50
+      },
+      "targets": [
+        {
+          "refId": "avg",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_read",
+          "aggregation": "avg",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        },
+        {
+          "refId": "max",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_read",
+          "aggregation": "max",
+          "bucket": 300000,
+          "legend": "query",
+          "value": "query"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (avg)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.name} (max)"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Cache read (cache_read) \u2014 p50 / p95 / max / count",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "redis-metrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 11,
+        "x": 13,
+        "y": 50
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "redis-metrics"
+          },
+          "type": "timeSeries",
+          "command": "ts.mrange",
+          "filter": "stage=cache_read",
+          "aggregation": "max",
+          "bucket": 1,
+          "legend": "query"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "mode": "seriesToRows",
+            "includeTimeField": false,
+            "reducers": [
+              "median",
+              "p95",
+              "max",
+              "count"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "Query",
+              "Median": "p50",
+              "95th %": "p95",
+              "Max": "Max",
+              "Count": "Count"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

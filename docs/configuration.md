@@ -32,3 +32,18 @@ bound database work and clean up abandoned sessions after an instance disappears
 they do not implement cancellation on browser navigation.
 
 Existing database credential variables retain their `AUGUR_*` names.
+
+## Query metrics
+
+Optional recording of query timings and search counts into a dedicated
+`redis-metrics` service, read by a Grafana dashboard. Recording is off unless
+`METRICS_REDIS_HOST` is set, so the default stack is unaffected:
+
+- `METRICS_REDIS_HOST`: hostname of the metrics Redis. Set it to `redis-metrics`
+  to enable recording. Default: unset (recording off).
+- `METRICS_REDIS_PORT`: port of the metrics Redis. Default: `6379`.
+- `GF_SECURITY_ADMIN_PASSWORD`: admin password for the `grafana` service, which
+  refuses to start without it. Default: unset.
+
+Enable the services with `docker compose --profile metrics up`. See
+[docs/query-metrics.md](query-metrics.md) for what is recorded and how to read it.
