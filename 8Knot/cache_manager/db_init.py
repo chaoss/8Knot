@@ -181,6 +181,35 @@ def _create_application_database() -> None:
         conn.close()
 
 
+def _create_cache_indexes(cur) -> None:
+    """
+    Indexes for cache reads (retrieve_from_cache) and bookkeeping lookups
+    (get_uncached). UNLOGGED tables do not get indexes automatically.
+
+    Discovers tables with a repo_id column at runtime so new cache tables
+    get indexed automatically without maintaining a hardcoded list.
+    """
+    cur.execute(
+        """
+        SELECT table_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND column_name = 'repo_id'
+          AND table_name != 'cache_bookkeeping'
+        ORDER BY table_name
+        """
+    )
+    for (table,) in cur.fetchall():
+        cur.execute(f"CREATE INDEX IF NOT EXISTS {table}_repo_id_idx ON {table} (repo_id)")
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS cache_bookkeeping_cache_func_repo_id_idx
+        ON cache_bookkeeping (cache_func, repo_id)
+        """
+    )
+    logging.warning("CREATED CACHE INDEXES")
+
+
 def _create_application_tables() -> None:
     """
     Creates tables for cached data in 'augur_cache' database.
@@ -436,6 +465,8 @@ def _create_application_tables() -> None:
             """
         )
         logging.warning("CREATED cache_bookkeeping TABLE")
+
+        _create_cache_indexes(cur)
 
         # commit changes, all-or-nothing.
         conn.commit()
