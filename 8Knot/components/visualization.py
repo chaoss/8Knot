@@ -43,14 +43,24 @@ class VisualizationAIO(dbc.Card):
                             [
                                 dbc.Col(html.H3(title, id=f"graph-title-{page}-{viz_id}", className="card-title")),
                                 dbc.Col(
-                                    dbc.Button(
-                                        "About Graph",
-                                        id={"type": "popover-target", "index": f"{page}-{viz_id}"},
-                                        color="outline-secondary",
-                                        size="sm",
-                                        className="about-graph-button",
-                                    ),
+                                    [
+                                        dbc.Button(
+                                            [html.I(className="fas fa-share-alt me-1"), "Share"],
+                                            id={"type": "share-btn", "graph": viz_id, "page": page},
+                                            color="outline-info",
+                                            size="sm",
+                                            className="share-graph-button me-2",
+                                        ),
+                                        dbc.Button(
+                                            "About Graph",
+                                            id={"type": "popover-target", "index": f"{page}-{viz_id}"},
+                                            color="outline-secondary",
+                                            size="sm",
+                                            className="about-graph-button",
+                                        ),
+                                    ],
                                     width="auto",
+                                    className="d-flex align-items-center",
                                 ),
                             ],
                             align="center",
