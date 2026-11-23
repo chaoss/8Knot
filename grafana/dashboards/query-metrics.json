@@ -61,7 +61,7 @@
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "lastNotNull"
@@ -140,7 +140,7 @@
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "lastNotNull"
@@ -219,7 +219,7 @@
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "lastNotNull"
@@ -298,7 +298,7 @@
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "lastNotNull"
@@ -367,7 +367,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 18
       },
@@ -471,8 +471,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 14,
+        "w": 11,
+        "x": 13,
         "y": 18
       },
       "targets": [
@@ -487,15 +487,14 @@
           "filter": "stage=e2e",
           "aggregation": "max",
           "bucket": 1,
-          "legend": "query",
-          "value": "query"
+          "legend": "query"
         }
       ],
       "transformations": [
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "median",
@@ -536,6 +535,42 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Count"
             },
             "properties": [
@@ -546,6 +581,10 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
               }
             ]
           }
@@ -562,7 +601,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 26
       },
@@ -666,8 +705,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 14,
+        "w": 11,
+        "x": 13,
         "y": 26
       },
       "targets": [
@@ -682,15 +721,14 @@
           "filter": "stage=queue_wait",
           "aggregation": "max",
           "bucket": 1,
-          "legend": "query",
-          "value": "query"
+          "legend": "query"
         }
       ],
       "transformations": [
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "median",
@@ -731,6 +769,42 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Count"
             },
             "properties": [
@@ -741,6 +815,10 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
               }
             ]
           }
@@ -757,7 +835,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 34
       },
@@ -861,8 +939,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 14,
+        "w": 11,
+        "x": 13,
         "y": 34
       },
       "targets": [
@@ -877,15 +955,14 @@
           "filter": "stage=augur_sql",
           "aggregation": "max",
           "bucket": 1,
-          "legend": "query",
-          "value": "query"
+          "legend": "query"
         }
       ],
       "transformations": [
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "median",
@@ -926,6 +1003,42 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Count"
             },
             "properties": [
@@ -936,6 +1049,10 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
               }
             ]
           }
@@ -952,7 +1069,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 42
       },
@@ -1056,8 +1173,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 14,
+        "w": 11,
+        "x": 13,
         "y": 42
       },
       "targets": [
@@ -1072,15 +1189,14 @@
           "filter": "stage=cache_write",
           "aggregation": "max",
           "bucket": 1,
-          "legend": "query",
-          "value": "query"
+          "legend": "query"
         }
       ],
       "transformations": [
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "median",
@@ -1121,6 +1237,42 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Count"
             },
             "properties": [
@@ -1131,6 +1283,10 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
               }
             ]
           }
@@ -1147,7 +1303,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 50
       },
@@ -1251,8 +1407,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
-        "x": 14,
+        "w": 11,
+        "x": 13,
         "y": 50
       },
       "targets": [
@@ -1267,15 +1423,14 @@
           "filter": "stage=cache_read",
           "aggregation": "max",
           "bucket": 1,
-          "legend": "query",
-          "value": "query"
+          "legend": "query"
         }
       ],
       "transformations": [
         {
           "id": "reduce",
           "options": {
-            "mode": "reduceFields",
+            "mode": "seriesToRows",
             "includeTimeField": false,
             "reducers": [
               "median",
@@ -1316,6 +1471,42 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Count"
             },
             "properties": [
@@ -1326,6 +1517,10 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 75
               }
             ]
           }
