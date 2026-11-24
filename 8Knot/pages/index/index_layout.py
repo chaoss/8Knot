@@ -25,7 +25,6 @@ from .search_utils import (
 
 # Import login utility functions
 from .login_utils import (
-    create_login_disabled_banner,
     create_login_navbar,
     is_login_enabled,
 )
@@ -91,9 +90,6 @@ if is_login_enabled():
 else:
     logging.warning("LOGIN DISABLED")
 
-# Create login banner (shown when login is disabled)
-login_banner = create_login_disabled_banner()
-
 # Create login navbar (shown when login is enabled)
 login_navbar = create_login_navbar(augur)
 
@@ -116,8 +112,6 @@ layout = html.Div(
             # Application stores and scripts
             *create_app_stores(),
             create_storage_quota_script(),
-            # Login banner overlay
-            login_banner if login_banner else html.Div(),
             # Main application structure
             dbc.Row(
                 [
