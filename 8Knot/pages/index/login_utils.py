@@ -1,13 +1,12 @@
 """
 Login utilities
-Provides modular components for login banner and navigation elements.
+Provides modular components for navigation elements.
 
 Generic Builders (All-in-One Pattern):
     create_nav_item: Build any type of navigation item
 
 Login-Specific Functions:
     create_login_navbar: Main login navigation bar
-    create_login_disabled_banner: Banner shown when login is disabled
     is_login_enabled: Check login status from environment
 """
 
@@ -59,58 +58,6 @@ def create_nav_item(
 
 
 # ===== LOGIN COMPONENT FUNCTIONS =====
-
-
-def create_login_disabled_alert():
-    """
-    Create the alert content for the login disabled banner.
-    Uses CSS classes from main_layout.css for consistent styling.
-
-    Returns:
-        dbc.Alert component with login disabled message
-    """
-    return dbc.Alert(
-        [
-            html.H4(
-                "Login is Currently Disabled",
-                className="alert-heading login-banner-heading",
-            ),
-            html.P(
-                [
-                    "If you need to collect data on new repositories, please ",
-                    html.A(
-                        "create a repository collection request",
-                        href="https://github.com/chaoss/8Knot/issues/new?template=augur_load.md",
-                        target="_blank",
-                        className="login-banner-link",
-                    ),
-                    ".",
-                ],
-                className="login-banner-text",
-            ),
-        ],
-        color="light",
-        dismissable=True,
-        duration=60000,
-        id="login-disabled-banner",
-        className="mb-0 login-banner-alert",
-    )
-
-
-def create_login_disabled_banner():
-    """
-    Create the banner displayed when login is disabled.
-    Uses CSS class .login-banner-container for positioning.
-
-    Returns:
-        html.Div containing the login disabled banner, or None if login is enabled
-    """
-    if not is_login_enabled():
-        return html.Div(
-            create_login_disabled_alert(),
-            className="login-banner-container",
-        )
-    return None
 
 
 def create_login_container():

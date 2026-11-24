@@ -418,45 +418,6 @@ button.icon-button.btn:active,
     color: inherit;
 }
 
-
-/* Login disabled banner positioning */
-
-.login-banner-container {
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    z-index: 1000;
-}
-
-.login-banner-alert {
-    background-color: var(--baby-blue-100);
-    border-color: var(--baby-blue-700);
-    border: 1px solid var(--baby-blue-700);
-    border-left: 5px solid var(--baby-blue-700);
-    box-shadow: 0 2px 8px var(--shadow-color-md);
-    max-width: 400px;
-    padding: 15px;
-    z-index: 1000;
-}
-
-.login-banner-heading {
-    color: var(--color-black);
-    font-weight: 600;
-    margin: 0 0 8px 0;
-    text-shadow: none;
-}
-
-.login-banner-text {
-    color: #333333;
-    margin: 0 0 10px 0;
-}
-
-.login-banner-link {
-    font-weight: 500;
-    color: #1565C0;
-}
-
-
 /* Search component specific classes */
 
 .search-input-wrapper {
