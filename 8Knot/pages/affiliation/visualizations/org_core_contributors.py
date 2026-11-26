@@ -35,7 +35,8 @@ gc_org_core_contributors = VisualizationAIO(
                 dbc.Label(
                     "Contributions Required:",
                     html_for=f"contributions-required-{PAGE}-{VIZ_ID}",
-                    width={"size": "auto"},
+                    width={"xs": 12, "sm": "auto"},
+                    className="me-1",
                 ),
                 dbc.Col(
                     dbc.Input(
@@ -48,13 +49,15 @@ gc_org_core_contributors = VisualizationAIO(
                         size="sm",
                         className="dark-input",
                     ),
-                    className="me-2",
-                    width=2,
+                    xs=12,
+                    sm="auto",
+                    className="me-3 mb-2 mb-sm-0",
                 ),
                 dbc.Label(
                     "Core Contributors Required:",
                     html_for=f"contributors-required-{PAGE}-{VIZ_ID}",
-                    width={"size": "auto"},
+                    width={"xs": 12, "sm": "auto"},
+                    className="me-1",
                 ),
                 dbc.Col(
                     dbc.Input(
@@ -65,28 +68,11 @@ gc_org_core_contributors = VisualizationAIO(
                         step=1,
                         value=3,
                         size="sm",
-                        style={"width": "80px"},
                         className="dark-input",
                     ),
-                    className="me-2",
-                    width=2,
-                ),
-            ],
-            align="center",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    dcc.DatePickerRange(
-                        id=f"date-picker-range-{PAGE}-{VIZ_ID}",
-                        min_date_allowed=dt.date(2005, 1, 1),
-                        max_date_allowed=dt.date.today(),
-                        initial_visible_month=dt.date(dt.date.today().year, 1, 1),
-                        clearable=True,
-                        className="dark-date-picker",
-                    ),
-                    # style={"marginTop": "1.7rem"},
-                    width=7,
+                    xs=12,
+                    sm="auto",
+                    className="me-3 mb-2 mb-sm-0",
                 ),
                 dbc.Col(
                     dbc.Checklist(
@@ -105,11 +91,28 @@ gc_org_core_contributors = VisualizationAIO(
                         inline=True,
                         switch=True,
                     ),
-                    width=6,
+                    xs=12,
+                    sm="auto",
                 ),
             ],
             align="center",
-            justify="between",
+            className="mb-2",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.DatePickerRange(
+                        id=f"date-picker-range-{PAGE}-{VIZ_ID}",
+                        min_date_allowed=dt.date(2005, 1, 1),
+                        max_date_allowed=dt.date.today(),
+                        initial_visible_month=dt.date(dt.date.today().year, 1, 1),
+                        clearable=True,
+                        className="dark-date-picker",
+                    ),
+                    width="auto",
+                ),
+            ],
+            align="center",
         ),
     ],
     class_name="dark-card",
